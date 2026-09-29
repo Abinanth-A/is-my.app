@@ -1,0 +1,6 @@
+{
+  "$schema": "../schema/domain.schema.json",
+  "owner": { "github": "jn-aman" },
+  "description": "End to end test: A record",
+  "records": { "A": ["185.199.108.153", "185.199.109.153"] }
+}
