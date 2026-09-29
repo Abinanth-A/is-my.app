@@ -296,7 +296,7 @@
           <h3>What the bot checks</h3>
           <ul>
             <li>App names use <code>a-z</code>, <code>0-9</code> and hyphens, up to 63 characters.</li>
-            <li>Up to 5 apps per GitHub account. The account must be 14 days old.</li>
+            <li>Up to 5 apps and 50 DNS records per GitHub account. The account must be 14 days old.</li>
             <li>Nested names like <code>api.my-app</code> are DNS only, and need you to own <code>my-app</code>.</li>
             <li>Hosted apps and <code>proxied</code> need a top-level name.</li>
             <li>Builds get 15 minutes, 20,000 files and 25 MiB per file. Static output only.</li>
@@ -357,7 +357,7 @@
         <details><summary>My app is on Vercel, Netlify or GitHub Pages. Anything special?</summary><p>Add <code>your-app-name.is-my.app</code> as a custom domain on your host first, then point a CNAME at the target it gives you. The <a href="#recipes">recipes</a> have the exact file for each host.</p></details>
         <details><summary>What can the deploy mode build?</summary><p>Any app that produces static files: Vite, React, Svelte, Astro, Next static export, Hugo, Jekyll, plain HTML. Builds run in a <code>node</code> container with no secrets, get 15 minutes, up to 20,000 files and 25 MiB per file. We check your branch every hour and redeploy when it moves.</p></details>
         <details><summary>Do I get HTTPS?</summary><p>Always. In deploy mode Cloudflare issues the certificate for you. In point mode your host issues it, just like any custom domain.</p></details>
-        <details><summary>How many apps can I have?</summary><p>Up to five apps per GitHub account, plus nested DNS records under them. Your account needs to be at least two weeks old.</p></details>
+        <details><summary>How many apps can I have?</summary><p>Up to five apps per GitHub account, plus nested names under them, with up to 50 DNS records in total. Your account needs to be at least two weeks old.</p></details>
         <details><summary>Can I use a nested name like <code>api.my-app</code>?</summary><p>Yes, for DNS records, as long as you own <code>my-app</code>. Hosted apps and the Cloudflare proxy need a top-level name, because Cloudflare's free certificate covers one level of subdomain.</p></details>
         <details><summary>What is not allowed?</summary><p>Phishing, malware, spam, impersonation, anything illegal. Names that break the rules are removed without notice. Read the <a href="https://github.com/jn-aman/is-my.app/blob/main/TERMS.md" target="_blank" rel="noopener">terms</a>.</p></details>
       </div>

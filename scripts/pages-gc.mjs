@@ -10,9 +10,16 @@ if (loadErrors.length || validateAll(domains, config, reserved).errors.length) {
 }
 
 const wanted = new Set(deployEntries(domains, config).map((d) => d.project));
-const orphans = (await cf.listPagesProjects())
+const ours = (await cf.listPagesProjects())
   .map((p) => p.name)
-  .filter((n) => n.startsWith(config.pagesPrefix) && n !== config.sitePagesProject && !wanted.has(n));
+  .filter((n) => n.startsWith(config.pagesPrefix) && n !== config.sitePagesProject);
+const orphans = ours.filter((n) => !wanted.has(n));
+
+// Same guard as sync-dns: a bug or an emptied domains/ folder must not wipe every hosted app.
+if (orphans.length > 3 && orphans.length > ours.length * 0.25 && process.env.GC_ALLOW_MASS_DELETE !== '1') {
+  console.error(`Would delete ${orphans.length} of ${ours.length} projects. Set GC_ALLOW_MASS_DELETE=1 to proceed.`);
+  process.exit(1);
+}
 
 console.log(orphans.length ? `Orphaned projects:\n  ${orphans.join('\n  ')}` : 'No orphaned projects.');
 if (orphans.length && process.env.GC_CONFIRM !== '1') {

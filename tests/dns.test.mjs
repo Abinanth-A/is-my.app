@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { slugFor, desiredRecords, planDnsChanges, validateAll, MANAGED, SITE } from '../scripts/lib/domains.mjs';
 
-const config = { zone: 'is-my.app', pagesPrefix: 'ismy-', maintainers: ['jn-aman'], maxDomainsPerUser: 5 };
+const config = { zone: 'is-my.app', pagesPrefix: 'ismy-', maintainers: ['jn-aman'], maxDomainsPerUser: 5, maxRecordsPerUser: 50 };
 const owner = { github: 'alice' };
 const map = (obj) => new Map(Object.entries(obj));
 

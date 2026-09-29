@@ -1,11 +1,11 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { changedNames, parseMode, selectTargets } from '../scripts/deploy-plan.mjs';
-import { evaluate, renderReport, MARKER } from '../scripts/check-pr.mjs';
+import { evaluate, renderReport, entryProblem, MARKER } from '../scripts/check-pr.mjs';
 import { buildIndex } from '../scripts/build-index.mjs';
 import { loadRepo } from '../scripts/lib/domains.mjs';
 
-const config = { zone: 'is-my.app', repo: 'jn-aman/is-my.app', pagesPrefix: 'ismy-', maintainers: ['jn-aman'], maxDomainsPerUser: 2, minAccountAgeDays: 14 };
+const config = { zone: 'is-my.app', repo: 'jn-aman/is-my.app', pagesPrefix: 'ismy-', maintainers: ['jn-aman'], maxDomainsPerUser: 2, maxRecordsPerUser: 50, minAccountAgeDays: 14 };
 const reserved = ['www'];
 const map = (obj) => new Map(Object.entries(obj));
 const cname = (github) => ({ owner: { github }, records: { CNAME: 'example.com' } });
@@ -99,6 +99,27 @@ test('check-pr: report neutralizes mentions and HTML', () => {
   assert.match(report, /Validation failed/);
 });
 
+test('check-pr: domain files must be small regular files', () => {
+  const blob = { type: 'blob', mode: '100644', size: 200 };
+  assert.equal(entryProblem(blob), null);
+  assert.equal(entryProblem({ ...blob, mode: '100755' }), null);
+  assert.match(entryProblem({ ...blob, mode: '120000' }), /regular file/);
+  assert.match(entryProblem({ type: 'commit', mode: '160000' }), /regular file/);
+  assert.match(entryProblem({ ...blob, size: 100_000 }), /larger than/);
+  assert.match(entryProblem(undefined), /not found/);
+});
+
+test('check-pr: report caps long lists and explains what happens next', () => {
+  const errors = Array.from({ length: 40 }, (_, i) => ({ name: 'x', message: `unknown key "${'k'.repeat(500)}${i}"` }));
+  const base = { mode: 'records', warnings: [], changes: [], author: 'alice', sha: 'abcdef1234567', zone: 'is-my.app' };
+  const failed = renderReport({ ...base, valid: false, errors });
+  assert.match(failed, /and 10 more/);
+  assert.ok(failed.split('\n').every((l) => l.length < 400));
+  assert.match(renderReport({ ...base, valid: true, errors: [], autoMerge: true }), /merges automatically/);
+  assert.match(renderReport({ ...base, valid: true, errors: [], autoMerge: false }), /maintainer/);
+  assert.match(renderReport({ ...base, mode: 'mixed', valid: true, errors: [], autoMerge: true }), /maintainer/);
+});
+
 test('build-index: contract', () => {
   const domains = map({
     b: { ...cname('bob'), description: 'Bob' },
@@ -113,7 +134,7 @@ test('build-index: contract', () => {
     zone: 'is-my.app',
     repo: 'jn-aman/is-my.app',
     reserved: ['api', 'www'],
-    limits: { maxDomainsPerUser: 2 },
+    limits: { maxDomainsPerUser: 2, maxRecordsPerUser: 50 },
     domains: [
       { name: 'a', owner: 'alice', description: '', kind: 'deploy', target: 'alice/site' },
       { name: 'b', owner: 'bob', description: 'Bob', kind: 'CNAME', target: 'example.com' },

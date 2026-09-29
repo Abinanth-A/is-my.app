@@ -244,6 +244,13 @@ export const withDeployDefaults = (d) => ({ ...DEPLOY_DEFAULTS, ...d, build: (d.
 
 // ---------- cross-file validation ----------
 
+// Number of DNS records a domain file turns into (a hosted app is one CNAME).
+export function recordCount(data) {
+  if (isObj(data?.deploy)) return 1;
+  if (!isObj(data?.records)) return 0;
+  return Object.values(data.records).reduce((n, v) => n + (Array.isArray(v) ? v.length : 1), 0);
+}
+
 const ownerOf = (data) => (typeof data?.owner?.github === 'string' ? data.owner.github.toLowerCase() : undefined);
 
 export function validateAll(domains, config, reserved = []) {
@@ -281,6 +288,21 @@ export function validateAll(domains, config, reserved = []) {
   for (const [owner, names] of perOwner) {
     if (names.length <= config.maxDomainsPerUser) continue;
     for (const name of names) errors.push({ name, message: `@${owner} exceeds the limit of ${config.maxDomainsPerUser} top-level domains` });
+  }
+
+  // Nested names do not count as apps, but every record uses up the zone's shared record quota.
+  const records = new Map();
+  for (const [name, data] of domains) {
+    const owner = ownerOf(data);
+    if (!owner || maintainers.has(owner)) continue;
+    const entry = records.get(owner) ?? { count: 0, names: [] };
+    entry.count += recordCount(data);
+    entry.names.push(name);
+    records.set(owner, entry);
+  }
+  for (const [owner, { count, names }] of records) {
+    if (count <= config.maxRecordsPerUser) continue;
+    for (const name of names) errors.push({ name, message: `@${owner} exceeds the limit of ${config.maxRecordsPerUser} DNS records (has ${count})` });
   }
 
   const slugs = new Map();

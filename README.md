@@ -68,7 +68,8 @@ Hosted apps are redeployed automatically, within about an hour, whenever your br
 - One file per name, lowercase `a-z`, `0-9` and `-`. Reserved names (see [`config/reserved.json`](config/reserved.json)) cannot be claimed.
 - `owner.github` must be the account that opens the pull request. Only the owner can change or remove a domain.
 - Your GitHub account must be at least 14 days old.
-- Up to 5 apps (top-level names) per person. Nested names do not count.
+- Up to 5 apps (top-level names) per person. Nested names do not count as apps.
+- Up to 50 DNS records per person across all of their names (a hosted app counts as one).
 - Nested names like `docs.pomodoro.is-my.app` (`domains/docs.pomodoro.json`) are allowed if you own `pomodoro`, for DNS records only (not `deploy` or `proxied`). Nested labels may start with `_` for verification records, like `_dmarc.pomodoro`.
 - Records must point to public addresses, and a `CNAME` cannot point back into `is-my.app`.
 - No unknown keys: the validator is strict so typos are caught early.

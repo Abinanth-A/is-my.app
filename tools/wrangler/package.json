@@ -1,0 +1,8 @@
+{
+  "name": "is-my-app-wrangler",
+  "private": true,
+  "description": "Pinned wrangler for deploy jobs. The lockfile fixes every transitive dependency, since these jobs hold the Cloudflare deploy token.",
+  "dependencies": {
+    "wrangler": "4.143.1"
+  }
+}

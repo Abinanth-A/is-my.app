@@ -7,6 +7,7 @@ on:
       - 'domains/**'
       - 'config/**'
       - 'scripts/**'
+      - 'tools/wrangler/**'
       - '.github/workflows/publish.yml'
   workflow_dispatch:
     inputs:
@@ -167,6 +168,8 @@ jobs:
         with:
           name: site-${{ matrix.project }}
           path: ${{ runner.temp }}/deploy/site
+      - name: Install pinned wrangler
+        run: npm ci --prefix tools/wrangler --ignore-scripts --no-audit --no-fund
       - name: Sanitize artifact
         working-directory: ${{ runner.temp }}/deploy
         run: |
@@ -181,7 +184,7 @@ jobs:
       - name: Deploy to Cloudflare Pages
         working-directory: ${{ runner.temp }}/deploy
         run: >-
-          npx --yes wrangler@4.143.1 pages deploy site
+          "$GITHUB_WORKSPACE/tools/wrangler/node_modules/.bin/wrangler" pages deploy site
           --project-name "$PROJECT" --branch main
           --commit-hash "$SHA" --commit-message "$REPO@$SHA" --commit-dirty=true
         env:

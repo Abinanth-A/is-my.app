@@ -5,12 +5,12 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import {
   validateDomain, validateAll, validateName, loadDomains, isPublicIPv4, isPublicIPv6, canonicalIPv6,
-  withDeployDefaults, isHostname,
+  withDeployDefaults, isHostname, recordCount,
 } from '../scripts/lib/domains.mjs';
 
 const config = {
   zone: 'is-my.app', repo: 'jn-aman/is-my.app', pagesPrefix: 'ismy-', sitePagesProject: 'is-my-app',
-  maintainers: ['jn-aman'], maxDomainsPerUser: 2, minAccountAgeDays: 14,
+  maintainers: ['jn-aman'], maxDomainsPerUser: 2, maxRecordsPerUser: 6, minAccountAgeDays: 14,
 };
 const reserved = ['www', 'api', 'admin', 'blog'];
 const ctx = { config, reserved };
@@ -195,6 +195,17 @@ test('per-user limits count top-level names only; maintainers are exempt', () =>
   assert.equal(over.filter((e) => /exceeds the limit/.test(e.message)).length, 3);
   const m = { owner: owner('JN-Aman'), records: { CNAME: 'example.com' } };
   assert.deepEqual(allErrors({ a: m, b: m, c: m, d: m }), []);
+});
+
+test('per-user record cap counts every record, nested names included', () => {
+  const two = rec({ A: ['1.1.1.1', '8.8.8.8'] });
+  assert.deepEqual(allErrors({ a: two, 'x.a': two, 'y.a': two }), []);
+  const over = allErrors({ a: two, 'x.a': two, 'y.a': two, 'z.a': rec({ TXT: 'hello' }) });
+  assert.equal(over.filter((e) => /6 DNS records \(has 7\)/.test(e.message)).length, 4);
+  assert.equal(recordCount({ deploy: { repo: 'a/b' } }), 1);
+  assert.equal(recordCount({ records: { MX: ['a.example', 'b.example'], TXT: 'x' } }), 3);
+  const m = { owner: owner('jn-aman'), records: { A: ['1.1.1.1', '8.8.8.8', '9.9.9.9', '4.4.4.4'] } };
+  assert.deepEqual(allErrors({ a: m, b: m }), []);
 });
 
 test('validateAll reports the set of valid names', () => {

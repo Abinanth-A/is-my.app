@@ -21,7 +21,7 @@ export function buildIndex(domains, config, reserved, now = new Date()) {
     zone: config.zone,
     repo: config.repo,
     reserved: [...reserved].sort(),
-    limits: { maxDomainsPerUser: config.maxDomainsPerUser },
+    limits: { maxDomainsPerUser: config.maxDomainsPerUser, maxRecordsPerUser: config.maxRecordsPerUser },
     domains: [...domains]
       .filter(([name]) => valid.has(name))
       .sort(([a], [b]) => a.localeCompare(b))

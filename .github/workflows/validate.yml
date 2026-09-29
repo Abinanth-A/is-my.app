@@ -39,6 +39,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
+          AUTO_MERGE: ${{ vars.AUTO_MERGE }}
 
   automerge:
     needs: check
