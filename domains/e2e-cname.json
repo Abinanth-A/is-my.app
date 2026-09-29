@@ -1,0 +1,6 @@
+{
+  "$schema": "../schema/domain.schema.json",
+  "owner": { "github": "jn-aman" },
+  "description": "End to end test: CNAME record",
+  "records": { "CNAME": "jn-aman.github.io" }
+}
