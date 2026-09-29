@@ -10,6 +10,7 @@ import { SplitText } from 'gsap/SplitText'
 import Lenis from 'lenis'
 import { initClaim } from './claim.js'
 import { loadRegistry, renderRegistry, fillMarquees } from './registry.js'
+import { initRecipes } from './recipes.js'
 
 gsap.registerPlugin(ScrollTrigger, SplitText)
 
@@ -93,11 +94,22 @@ function scrambleTo(el, word, duration = 0.9) {
     onComplete() { el.textContent = word },
   })
 }
+// long app names like "your-app-name" shrink so the hero line never overflows
+function fitWord(el, word, duration = 0.7) {
+  const probe = el.cloneNode()
+  probe.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;font-size:1em'
+  probe.textContent = word
+  el.parentElement.appendChild(probe)
+  const scale = Math.min(1, el.closest('h1').clientWidth / probe.offsetWidth)
+  probe.remove()
+  gsap.to(el, { fontSize: `${scale}em`, duration, ease: 'expo.out' })
+}
 function loopScramble(el) {
   const words = el.dataset.words.split(',')
   let i = 0
   const next = () => {
     i = (i + 1) % words.length
+    fitWord(el, words[i])
     scrambleTo(el, words[i]).eventCallback('onComplete', () => {
       el.textContent = words[i]
       gsap.delayedCall(1.9, next)
@@ -150,7 +162,9 @@ function choreograph() {
     hero: { x: 0, y: 0.1, amp: 0.26, freq: 1.0, hue: 0, spread: 0, dim: 1, rotY: 0 },
     how: { x: X(3.3), y: m ? 1.7 : 1.35, amp: 0.4, freq: 1.4, hue: 0.22, spread: 0.35, dim: 0.85, rotY: 1.4, scale: m ? 0.5 : 0.62 },
     modes: { x: 0, y: 0, amp: 0.22, freq: 1, hue: 0.48, spread: 0.12, dim: 0.35, rotY: 2.3, scale: 1.9 },
+    recipes: { x: X(-3.1), y: 1.1, amp: 0.32, freq: 1.2, hue: 0.58, spread: 0.3, dim: 0.55, rotY: 2.8, scale: m ? 0.5 : 0.7 },
     statement: { x: 0, y: 0, amp: 0.48, freq: 0.8, hue: 0.7, spread: 1.3, dim: 0.5, rotY: 3.2, scale: 3.1 },
+    docs: { x: X(3.2), y: 1.4, amp: 0.3, freq: 1.2, hue: 1.02, spread: 0.25, dim: 0.45, rotY: 4.5, scale: m ? 0.45 : 0.55 },
     claim: { x: X(2.5), y: m ? -1.8 : 0.3, amp: 0.3, freq: 1.4, hue: 0.92, spread: 0.2, dim: 0.9, rotY: 4, scale: m ? 0.55 : 0.85 },
     registry: { x: X(-2.9), y: 0.9, amp: 0.34, freq: 1.3, hue: 1.12, spread: 0.45, dim: 0.75, rotY: 5, scale: 0.6 },
     faq: { x: X(-2.4), y: -0.6, amp: 0.36, freq: 1.3, hue: 1.3, spread: 0.2, dim: 0.8, rotY: 5.8, scale: 0.7 },
@@ -252,7 +266,7 @@ function initReveals() {
       scrollTrigger: { trigger: el, start: 'top 85%' },
     })
   })
-  document.querySelectorAll('.kicker, .step__meta p, .card, .stat, details, .builder, .preview, .footer__cta .btn').forEach((el) => {
+  document.querySelectorAll('.kicker, .step__meta p, .card, .stat, details, .builder, .preview, .recipes__ui, .docs__ref, .rules, .docs__row .window, .footer__cta .btn').forEach((el) => {
     if (reduced || el.closest('.hero')) return
     gsap.from(el, { y: 40, autoAlpha: 0, duration: 1.2, ease: 'expo.out', scrollTrigger: { trigger: el, start: 'top 90%' } })
   })
@@ -308,7 +322,7 @@ function initMarquee() {
   })
 }
 
-/* ---------------- pointer: cursor, magnetic, tilt, blob hover ---------------- */
+/* ---------------- pointer: tilt, blob hover ---------------- */
 function initPointer() {
   if (gl) {
     window.addEventListener('pointermove', (e) => {
@@ -318,34 +332,6 @@ function initPointer() {
   }
   if (coarse || reduced) return
 
-  html.classList.add('has-cursor')
-  const cursor = document.querySelector('.cursor')
-  const dot = cursor.querySelector('.cursor__dot')
-  const ring = cursor.querySelector('.cursor__ring')
-  const label = cursor.querySelector('.cursor__label')
-  const dx = gsap.quickTo(dot, 'x', { duration: 0.08 }), dy = gsap.quickTo(dot, 'y', { duration: 0.08 })
-  const rx = gsap.quickTo(ring, 'x', { duration: 0.45, ease: 'power3' }), ry = gsap.quickTo(ring, 'y', { duration: 0.45, ease: 'power3' })
-  window.addEventListener('pointermove', (e) => { cursor.classList.add('is-active'); dx(e.clientX); dy(e.clientY); rx(e.clientX); ry(e.clientY) }, { passive: true })
-  document.addEventListener('pointerleave', () => cursor.classList.remove('is-active'))
-  document.addEventListener('pointerover', (e) => {
-    const t = e.target.closest('a, button, summary, [data-cursor], input, select')
-    const text = t?.dataset.cursor && !['scroll'].includes(t.dataset.cursor) ? t.dataset.cursor : ''
-    cursor.classList.toggle('is-hover', !!t && !text && !t.matches('input, select'))
-    cursor.classList.toggle('is-label', !!text)
-    label.textContent = text === 'open' ? 'Open' : text
-  })
-
-  document.querySelectorAll('.magnetic').forEach((el) => {
-    const xTo = gsap.quickTo(el, 'x', { duration: 0.6, ease: 'power3' })
-    const yTo = gsap.quickTo(el, 'y', { duration: 0.6, ease: 'power3' })
-    el.addEventListener('pointermove', (e) => {
-      const r = el.getBoundingClientRect()
-      xTo((e.clientX - r.left - r.width / 2) * 0.35)
-      yTo((e.clientY - r.top - r.height / 2) * 0.45)
-    })
-    el.addEventListener('pointerleave', () => { gsap.to(el, { x: 0, y: 0, duration: 1, ease: 'elastic.out(1, 0.35)' }) })
-  })
-
   document.querySelectorAll('.tilt').forEach((card) => {
     const rX = gsap.quickTo(card, 'rotateX', { duration: 0.8, ease: 'power3' })
     const rY = gsap.quickTo(card, 'rotateY', { duration: 0.8, ease: 'power3' })
@@ -354,8 +340,8 @@ function initPointer() {
       const px = (e.clientX - r.left) / r.width, py = (e.clientY - r.top) / r.height
       card.style.setProperty('--mx', `${px * 100}%`)
       card.style.setProperty('--my', `${py * 100}%`)
-      rY((px - 0.5) * 10)
-      rX(-(py - 0.5) * 8)
+      rY((px - 0.5) * 6)
+      rX(-(py - 0.5) * 5)
     })
     card.addEventListener('pointerleave', () => { rX(0); rY(0) })
   })
@@ -376,12 +362,43 @@ function initPointer() {
   giant.parentElement.addEventListener('pointerleave', () => letters.forEach((c) => (c.style.fontVariationSettings = '')))
 }
 
+/* ---------------- copy buttons + keyboard ---------------- */
+function initCopy() {
+  document.querySelectorAll('[data-copy]').forEach((btn) => {
+    const label = btn.querySelector('[data-copy-label]')
+    btn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(btn.dataset.copy)
+        label.textContent = 'copied'
+      } catch {
+        label.textContent = 'failed'
+      }
+      setTimeout(() => (label.textContent = 'copy'), 1600)
+    })
+  })
+}
+
+// "/" jumps to the app search, like most dev tools
+function initKeys() {
+  const search = document.querySelector('[data-registry-search]')
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return
+    if (e.target.closest('input, textarea, select, [contenteditable]')) return
+    e.preventDefault()
+    if (lenis) lenis.scrollTo(document.querySelector('#registry'), { duration: 1.2, onComplete: () => search.focus({ preventScroll: true }) })
+    else search.focus()
+  })
+}
+
 /* ---------------- boot ---------------- */
 async function boot() {
   const [registry] = await Promise.all([loadRegistry(), initGL(), document.fonts.ready])
   fillMarquees(registry)
   renderRegistry(document.querySelector('.registry'), registry)
   initClaim(document.querySelector('.builder'), registry)
+  initRecipes(document.querySelector('[data-recipes]'))
+  initCopy()
+  initKeys()
 
   initScroll()
   const heroChars = SplitText.create('.hero .split', { type: 'chars', charsClass: 'char' }).chars
@@ -392,7 +409,10 @@ async function boot() {
   initPointer()
   choreograph()
   intro(heroChars)
-  if (!reduced) loopScramble(document.querySelector('.scramble'))
+  const scramble = document.querySelector('.scramble')
+  fitWord(scramble, scramble.textContent, 0)
+  window.addEventListener('resize', () => fitWord(scramble, scramble.textContent, 0))
+  if (!reduced) loopScramble(scramble)
 
   // hero exit: title drifts up as you leave
   if (!reduced) {

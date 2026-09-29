@@ -16,17 +16,17 @@ function entry(d) {
   // only single-label names are browsable sites; nested ones are usually verification records
   const browsable = !d.name.includes('.') && ['CNAME', 'A', 'AAAA', 'deploy'].includes(d.kind)
   const tag = browsable ? 'a' : 'div'
-  const href = browsable ? ` href="https://${esc(d.name)}.is-my.app" target="_blank" rel="noopener" data-cursor="Visit"` : ''
+  const href = browsable ? ` href="https://${esc(d.name)}.is-my.app" target="_blank" rel="noopener"` : ''
   return `<li><${tag} class="entry"${href}>
     <img src="https://github.com/${esc(d.owner)}.png?size=88" alt="" loading="lazy" width="44" height="44" />
     <div>
       <div class="entry__name">${esc(d.name)}<span>.is-my.app</span></div>
-      <div class="entry__meta"><span class="badge${isDeploy ? ' badge--deploy' : ''}">${isDeploy ? 'HOSTED' : esc(d.kind)}</span><em>@${esc(d.owner)} → ${esc(d.target || '')}</em></div>
+      <div class="entry__meta"><span class="badge${isDeploy ? ' badge--deploy' : ''}">${isDeploy ? 'HOSTED' : esc(d.kind)}</span><em>${esc(d.description || d.target || '')}</em><span class="entry__owner">@${esc(d.owner)}</span></div>
     </div>
   </${tag}></li>`
 }
 
-const ghost = (label) => `<li><div class="entry entry--ghost"><span class="entry__avatar">+</span><div><div class="entry__name">${label}<span>.is-my.app</span></div><div class="entry__meta">unclaimed, could be yours</div></div></div></li>`
+const ghost = (label) => `<li><div class="entry entry--ghost"><span class="entry__avatar">+</span><div><div class="entry__name">${label}<span>.is-my.app</span></div><div class="entry__meta">unclaimed, could be your app</div></div></div></li>`
 
 export function renderRegistry(section, registry) {
   const grid = section.querySelector('[data-registry-grid]')
@@ -43,8 +43,8 @@ export function renderRegistry(section, registry) {
       ? all.filter((d) => [d.name, d.owner, d.target, d.description].some((v) => v && String(v).toLowerCase().includes(needle)))
       : all
     let html = list.map(entry).join('')
-    if (!needle) html += ['yourname', 'your-startup', 'your-next-idea'].map(ghost).join('')
-    if (needle && !list.length) html = `<li class="registry__empty">Nothing matches "${esc(q)}". Which means it might be free.</li>`
+    if (!needle) html += ['your-app-name', 'your-next-idea', 'your-game'].map(ghost).join('')
+    if (needle && !list.length) html = `<li class="registry__empty">Nothing matches "${esc(q)}". Which means that name might be free.</li>`
     grid.innerHTML = html
   }
   search.addEventListener('input', () => draw(search.value))
@@ -53,7 +53,7 @@ export function renderRegistry(section, registry) {
 
 export function fillMarquees(registry) {
   const real = registry.domains.filter((d) => !d.name.includes('.')).map((d) => d.name)
-  const invites = ['yourname', 'your-portfolio', 'your-startup', 'your-blog', 'your-side-project', 'your-docs']
+  const invites = ['your-app-name', 'your-side-project', 'your-game', 'your-hackathon-build', 'your-weekend-app', 'your-tool']
   const words = [...real, ...invites]
   document.querySelectorAll('[data-marquee]').forEach((track, i) => {
     const list = i % 2 ? [...words].reverse() : words

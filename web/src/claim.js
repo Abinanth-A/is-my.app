@@ -8,7 +8,7 @@ const REPO_RE = /^[a-z\d](?:[a-z\d-]{0,38})\/[\w.-]{1,100}$/i
 const esc = (s) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c])
 
 // Tiny JSON highlighter for the preview pane.
-function highlight(json) {
+export function highlight(json) {
   return esc(json).replace(
     /("(?:\\.|[^"\\])*")(\s*:)?|\b(true|false|null)\b|(-?\d+(?:\.\d+)?)|([{}\[\],])/g,
     (m, str, colon, bool, num, punct) => {
@@ -37,7 +37,7 @@ export function initClaim(root, registry) {
   let mode = 'records'
 
   function nameState(n) {
-    if (!n) return ['idle', 'Type a name to check it']
+    if (!n) return ['idle', 'Type your app name to check it']
     if (!LABEL.test(n)) return ['bad', 'Letters, numbers and hyphens only. No leading or trailing hyphen.']
     if (reserved.has(n)) return ['reserved', `${n} is reserved`]
     if (taken.has(n)) return ['taken', `Taken by @${taken.get(n)}`]
@@ -53,7 +53,7 @@ export function initClaim(root, registry) {
   }
 
   function build() {
-    const doc = { $schema: '../schema/domain.schema.json', owner: { github: els.github.value.trim() || 'your-github-username' } }
+    const doc = { owner: { github: els.github.value.trim() || 'your-github-username' } }
     const desc = els.desc.value.trim()
     if (desc) doc.description = desc
     if (mode === 'records') {
@@ -64,7 +64,7 @@ export function initClaim(root, registry) {
         ? { CNAME: (t || fallback).replace(/\.$/, '') }
         : { [type]: (t || fallback).split(/[\s,]+/).filter(Boolean) }
     } else {
-      const deploy = { repo: normalizeRepo(els.repo.value) || 'you/your-site' }
+      const deploy = { repo: normalizeRepo(els.repo.value) || 'you/your-app' }
       const b = els.build.value.trim()
       const o = els.output.value.trim()
       if (b) deploy.build = b
@@ -80,7 +80,7 @@ export function initClaim(root, registry) {
     const [state, msg] = nameState(n)
     els.status.dataset.state = state
     els.status.textContent = msg
-    names.forEach((el) => (el.textContent = n || 'yourname'))
+    names.forEach((el) => (el.textContent = n || 'your-app-name'))
 
     const json = build()
     els.out.innerHTML = highlight(json)
