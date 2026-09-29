@@ -155,7 +155,8 @@ test('deploy validation and defaults', () => {
   bad('site', { owner: owner(), deploy: { repo: 'a/b', node: '16' } }, /deploy.node/);
   bad('site', { owner: owner(), deploy: { repo: 'a/b', node: 22 } }, /deploy.node/);
   bad('site', { owner: owner(), deploy: { repo: 'a/b', build: 'a\nb' } }, /deploy.build/);
-  bad('_x.site', { owner: owner(), deploy: { repo: 'a/b' } }, /"_" labels/);
+  bad('_x.site', { owner: owner(), deploy: { repo: 'a/b' } }, /top-level/);
+  bad('docs.site', { owner: owner(), deploy: { repo: 'a/b' } }, /top-level/);
   assert.deepEqual(withDeployDefaults({ repo: 'a/b' }), { repo: 'a/b', branch: 'main', build: '', output: '.', root: '.', node: '22' });
   assert.equal(withDeployDefaults({ repo: 'a/b', build: '  npm run build ' }).build, 'npm run build');
 });

@@ -28,10 +28,10 @@ jobs:
       sha: ${{ steps.check.outputs.sha }}
     steps:
       # Base branch only. Never set `ref` to the PR head here.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
         with:
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22
       - id: check
@@ -42,7 +42,7 @@ jobs:
 
   automerge:
     needs: check
-    if: vars.AUTO_MERGE == 'true' && needs.check.outputs.valid == 'true' && needs.check.outputs.mode == 'records'
+    if: vars.AUTO_MERGE == 'true' && needs.check.outputs.valid == 'true' && (needs.check.outputs.mode == 'records' || needs.check.outputs.mode == 'deploy')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -58,9 +58,11 @@ jobs:
           REPO: ${{ github.repository }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           SHA: ${{ needs.check.outputs.sha }}
-      # Merges made with GITHUB_TOKEN do not trigger push workflows, so start the DNS sync explicitly.
-      - name: Publish DNS
-        run: gh workflow run publish.yml --repo "$REPO" --ref main -f target=dns
+      # Merges made with GITHUB_TOKEN do not trigger push workflows, so start publishing explicitly.
+      # "stale" syncs DNS and builds any hosted app whose live deployment is behind its branch.
+      - name: Publish
+        run: gh workflow run publish.yml --repo "$REPO" --ref main -f target="$TARGET"
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
+          TARGET: ${{ needs.check.outputs.mode == 'deploy' && 'stale' || 'dns' }}

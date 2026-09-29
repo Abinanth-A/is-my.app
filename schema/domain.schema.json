@@ -95,7 +95,7 @@
     },
     "deploy": {
       "type": "object",
-      "description": "Build a public GitHub repository and host it on Cloudflare Pages (static output only).",
+      "description": "Build a public GitHub repository and host it on Cloudflare Pages (static output only). Top-level names only.",
       "additionalProperties": false,
       "required": ["repo"],
       "properties": {

@@ -201,7 +201,8 @@ function isBranch(b) {
 function validateDeploy(name, d, errors) {
   if (!isObj(d)) return errors.push('"deploy" must be an object');
   strictKeys(d, ['repo', 'branch', 'build', 'output', 'root', 'node'], 'deploy', errors);
-  if (name.split('.').some((l) => l.startsWith('_'))) errors.push('"deploy" cannot be used on names with "_" labels');
+  // Free Universal SSL only covers one level (*.is-my.app), so hosted apps live at top-level names.
+  if (!isTopLevel(name)) errors.push('"deploy" is only available on top-level names like "my-app", not "docs.my-app"');
   if (typeof d.repo !== 'string' || !REPO.test(d.repo) || /\/\.\.?$/.test(d.repo)) errors.push('deploy.repo must be a GitHub repository like "owner/name"');
   if ('branch' in d && !isBranch(d.branch)) errors.push('deploy.branch must be a valid branch name');
   if ('build' in d && !str(d.build, 500)) errors.push('deploy.build must be a single-line string (max 500 chars; chain commands with &&)');

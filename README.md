@@ -1,17 +1,17 @@
 # is-my.app
 
-Free subdomains for developers: get `yourname.is-my.app` with a pull request.
+Free subdomains for your apps: get `your-app-name.is-my.app` with a pull request.
 
-Point it at anything you already host (GitHub Pages, Vercel, Netlify, Cloudflare Pages, your own server), or give us a public GitHub repo and we build and host it for you on Cloudflare Pages.
+Point it at an app you already host (GitHub Pages, Vercel, Netlify, Cloudflare Pages, your own server), or give us a public GitHub repo and we build and host it for you on Cloudflare Pages.
 
-Browse taken names at [is-my.app](https://is-my.app).
+Browse live apps at [is-my.app](https://is-my.app). The registry is also available as JSON at [`is-my.app/domains.json`](https://is-my.app/domains.json).
 
-## Claim a subdomain
+## Claim a subdomain for your app
 
 1. Fork this repository.
-2. Add `domains/<name>.json`. The file name is your subdomain: `domains/bob.json` claims `bob.is-my.app`.
+2. Add `domains/<app-name>.json`. The file name is the subdomain: `domains/pomodoro.json` claims `pomodoro.is-my.app`.
 3. Open a pull request. A bot validates it and comments with the result.
-4. Once merged, your subdomain is live within a few minutes.
+4. Valid pull requests are merged automatically, and your app is live within a few minutes.
 
 Your editor autocompletes the format if you keep the `$schema` line.
 
@@ -21,7 +21,7 @@ Your editor autocompletes the format if you keep the `$schema` line.
 {
   "$schema": "../schema/domain.schema.json",
   "owner": { "github": "your-username", "email": "optional@example.com" },
-  "description": "My personal wiki",
+  "description": "A focus timer",
   "records": { "CNAME": "your-username.github.io" }
 }
 ```
@@ -42,9 +42,9 @@ Set `"proxied": true` to put Cloudflare's proxy (CDN, TLS) in front of an `A`, `
 {
   "$schema": "../schema/domain.schema.json",
   "owner": { "github": "your-username" },
-  "description": "My portfolio",
+  "description": "A habit tracker",
   "deploy": {
-    "repo": "your-username/portfolio",
+    "repo": "your-username/habit-tracker",
     "branch": "main",
     "build": "npm ci && npm run build",
     "output": "dist"
@@ -61,15 +61,15 @@ Set `"proxied": true` to put Cloudflare's proxy (CDN, TLS) in front of an `A`, `
 | `root`   | `.`      | Folder the build runs in (useful for monorepos)                    |
 | `node`   | `22`     | Node.js version                                                    |
 
-Hosted sites are redeployed automatically, within about an hour, whenever your branch gets new commits.
+Hosted apps are redeployed automatically, within about an hour, whenever your branch gets new commits. Hosted apps must use a top-level name (`habits.is-my.app`, not `app.habits.is-my.app`): Cloudflare's free certificate covers one level of subdomain.
 
 ## Rules
 
 - One file per name, lowercase `a-z`, `0-9` and `-`. Reserved names (see [`config/reserved.json`](config/reserved.json)) cannot be claimed.
 - `owner.github` must be the account that opens the pull request. Only the owner can change or remove a domain.
 - Your GitHub account must be at least 14 days old.
-- Up to 5 top-level subdomains per person. Nested names do not count.
-- Nested names like `docs.bob.is-my.app` (`domains/docs.bob.json`) are allowed if you own `bob`. Nested labels may start with `_` for verification records, like `_dmarc.bob`.
+- Up to 5 apps (top-level names) per person. Nested names do not count.
+- Nested names like `docs.pomodoro.is-my.app` (`domains/docs.pomodoro.json`) are allowed if you own `pomodoro`, for DNS records only (not `deploy` or `proxied`). Nested labels may start with `_` for verification records, like `_dmarc.pomodoro`.
 - Records must point to public addresses, and a `CNAME` cannot point back into `is-my.app`.
 - No unknown keys: the validator is strict so typos are caught early.
 - Everything must follow the [terms](TERMS.md). No phishing, malware or illegal content.
@@ -78,8 +78,8 @@ Hosted sites are redeployed automatically, within about an hour, whenever your b
 
 Most hosts need to know about your custom domain before they will serve it:
 
-- **GitHub Pages:** set the custom domain in your repository settings, then use `"CNAME": "your-username.github.io"`. To verify the domain, add a TXT record as a nested name, e.g. `domains/_github-pages-challenge-your-username.bob.json` with `"records": { "TXT": "<code from GitHub>" }`.
-- **Vercel / Netlify:** add `bob.is-my.app` as a domain in the project first, then use the `CNAME` (or `TXT` verification record) they show you.
+- **GitHub Pages:** set the custom domain in your repository settings, then use `"CNAME": "your-username.github.io"`. To verify the domain, add a TXT record as a nested name, e.g. `domains/_github-pages-challenge-your-username.pomodoro.json` with `"records": { "TXT": "<code from GitHub>" }`.
+- **Vercel / Netlify:** add `pomodoro.is-my.app` as a domain in the project first, then use the `CNAME` (or `TXT` verification record) they show you.
 - **Cloudflare Pages (your own account):** add the custom domain in your Pages project, then point a `CNAME` at `<project>.pages.dev`.
 
 ## How it works
@@ -107,18 +107,21 @@ flowchart LR
 - Builds run in the official `node:<version>` Docker image as a non-root user, with a 15 minute limit and no secrets. Use `npx` or `corepack pnpm ...` / `corepack yarn ...` rather than global installs.
 - At most 20,000 files, each at most 25 MiB. Symlinks are dropped.
 - Redeployed hourly when your branch changes.
-- Cloudflare Pages has a soft limit of 100 projects per account, so hosted slots are limited and reviewed by a maintainer.
+- Top-level names only.
+- Cloudflare Pages has a soft limit of 100 projects per account, so hosted slots are limited.
 
 ## Maintainer setup
 
 1. Add the zone `is-my.app` to Cloudflare.
-2. Create an API token with:
-   - Account > Cloudflare Pages > Edit
-   - Zone > DNS > Edit (zone `is-my.app`)
-   - Zone > Zone > Read (zone `is-my.app`)
-3. Add repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
-4. Optional: set the repository variable `AUTO_MERGE` to `true` to auto-merge valid DNS-only PRs (hosted deploys always wait for review). This needs "Allow GitHub Actions to create and approve pull requests" and branch rules that let `github-actions` merge.
-5. Remove any parking records at the apex before the first site deploy, or run once:
+2. Create three API tokens, each with the least it needs:
+   - `CF_READ_TOKEN` (deploy planning): Account > Cloudflare Pages > Read
+   - `CF_DNS_TOKEN` (DNS sync): Account > Cloudflare Pages > Read, Zone > DNS > Edit and Zone > Zone > Read on `is-my.app` only
+   - `CF_DEPLOY_TOKEN` (hosted deploys and the website): Account > Cloudflare Pages > Edit, Zone > DNS > Edit and Zone > Zone > Read on `is-my.app` only
+3. Create a GitHub environment named `cloudflare` whose deployment branches are limited to `main`, and add the three tokens plus `CLOUDFLARE_ACCOUNT_ID` as environment secrets (not repository secrets). Jobs only get secrets when they run from `main`, and the jobs that build or install third-party code never reference the environment.
+4. Set the repository variable `AUTO_MERGE` to `true` to merge valid pull requests automatically (`records` and `deploy` PRs; PRs that touch anything outside `domains/` always wait for a maintainer).
+5. Keep a ruleset on `main` that blocks force pushes and deletion.
+6. Cloudflare Pages permissions cannot be limited to single projects, so the safest setup is a Cloudflare account that holds only `is-my.app`.
+7. Remove any parking records at the apex before the first site deploy, or run once:
    `node scripts/pages-attach.mjs is-my-app is-my.app --comment is-my.app:site --force`
 
 Useful commands (all support `DRY_RUN=1`, which reads from Cloudflare but changes nothing):
