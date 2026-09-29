@@ -1,0 +1,11 @@
+{
+  "$schema": "../schema/domain.schema.json",
+  "owner": { "github": "jn-aman" },
+  "description": "Tetris in the browser",
+  "deploy": {
+    "repo": "jn-aman/tetris",
+    "branch": "master",
+    "build": "mkdir -p dist && cp *.html *.css *.js dist/",
+    "output": "dist"
+  }
+}
