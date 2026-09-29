@@ -59,10 +59,10 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
           SHA: ${{ needs.check.outputs.sha }}
       # Merges made with GITHUB_TOKEN do not trigger push workflows, so start publishing explicitly.
-      # "stale" syncs DNS and builds any hosted app whose live deployment is behind its branch.
+      # "stale" is a full reconcile: it syncs all DNS and builds every hosted app that is behind its
+      # branch, so a queued run replacing another pending one never loses work.
       - name: Publish
-        run: gh workflow run publish.yml --repo "$REPO" --ref main -f target="$TARGET"
+        run: gh workflow run publish.yml --repo "$REPO" --ref main -f target=stale
         env:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
-          TARGET: ${{ needs.check.outputs.mode == 'deploy' && 'stale' || 'dns' }}
