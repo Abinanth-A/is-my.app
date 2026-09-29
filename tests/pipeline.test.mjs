@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { changedNames, parseMode, selectTargets } from '../scripts/deploy-plan.mjs';
-import { evaluate, renderReport, entryProblem, MARKER } from '../scripts/check-pr.mjs';
+import { evaluate, renderReport, entryProblem, isReclaimedName, MARKER } from '../scripts/check-pr.mjs';
 import { buildIndex } from '../scripts/build-index.mjs';
 import { loadRepo } from '../scripts/lib/domains.mjs';
 
@@ -107,6 +107,12 @@ test('check-pr: domain files must be small regular files', () => {
   assert.match(entryProblem({ type: 'commit', mode: '160000' }), /regular file/);
   assert.match(entryProblem({ ...blob, size: 100_000 }), /larger than/);
   assert.match(entryProblem(undefined), /not found/);
+});
+
+test('check-pr: accounts newer than the domain file are treated as reused usernames', () => {
+  const lastChanged = '2026-03-01T00:00:00Z';
+  assert.equal(isReclaimedName(Date.parse('2025-01-01T00:00:00Z'), lastChanged), false);
+  assert.equal(isReclaimedName(Date.parse('2026-06-01T00:00:00Z'), lastChanged), true);
 });
 
 test('check-pr: report caps long lists and explains what happens next', () => {

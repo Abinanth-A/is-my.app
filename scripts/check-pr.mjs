@@ -61,6 +61,8 @@ async function resolves(host) {
   return false;
 }
 
+export const isReclaimedName = (accountCreated, lastChanged) => accountCreated > Date.parse(lastChanged);
+
 /**
  * Pure core: apply PR changes on top of base domains and decide what is allowed.
  * changes: [{ name, status: 'added'|'modified'|'removed', data?, parseError? }]; otherFiles: non-domain paths.
@@ -195,19 +197,30 @@ async function main() {
       await addChange(f.filename, f.status === 'removed' ? 'removed' : f.status === 'added' || f.status === 'copied' ? 'added' : 'modified');
     }
   }
-  // A domain file that is not on the base branch is new, whatever git calls it.
-  for (const c of changes) if (c.status === 'modified' && !base.has(c.name)) c.status = 'added';
+  // Git reports status against the merge base, which can be older than main. Ownership rules
+  // must use main: a file that exists there is a modification, whatever git calls it.
+  for (const c of changes) if (c.status !== 'removed') c.status = base.has(c.name) ? 'modified' : 'added';
 
   const result = evaluate({ base, changes, otherFiles, author, config, reserved });
   const { errors, warnings, mode, isMaintainer } = result;
   if (pr.base.ref !== DEFAULT_BRANCH) errors.push({ name: null, message: `pull requests must target \`${DEFAULT_BRANCH}\`` });
   if (files.length >= COMPARE_LIMIT || tree?.truncated) errors.push({ name: null, message: `too many files changed (max ${COMPARE_LIMIT - 1})` });
 
-  if (!isMaintainer && changes.some((c) => c.status !== 'removed')) {
+  if (!isMaintainer && changes.length) {
     const user = await gh(`/users/${encodeURIComponent(author)}`);
-    const ageDays = (Date.now() - Date.parse(user.created_at)) / 86_400_000;
-    if (ageDays < config.minAccountAgeDays) {
+    const created = Date.parse(user.created_at);
+    if (changes.some((c) => c.status !== 'removed') && (Date.now() - created) / 86_400_000 < config.minAccountAgeDays) {
       errors.push({ name: null, message: `your GitHub account must be at least ${config.minAccountAgeDays} days old` });
+    }
+    // Usernames are freed when an account is renamed or deleted, and anyone can take them. An account
+    // created after a domain file last changed on main cannot be the account that owned it then.
+    for (const c of changes) {
+      if (c.status === 'added' || !base.has(c.name)) continue;
+      const path = encodeURIComponent(`domains/${c.name}.json`);
+      const [last] = await gh(`/repos/${GITHUB_REPOSITORY}/commits?path=${path}&sha=${DEFAULT_BRANCH}&per_page=1`);
+      if (last && isReclaimedName(created, last.commit.committer.date)) {
+        errors.push({ name: c.name, message: 'your account is newer than this domain, so it may be a reused username. Please open an issue and a maintainer will help' });
+      }
     }
   }
 
