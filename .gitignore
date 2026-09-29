@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.wrangler/
+web/public/domains.json
+pr-report.md
+.env*
+.DS_Store

@@ -1,0 +1,37 @@
+name: Report abuse
+description: Report a subdomain used for phishing, malware, spam or other abuse.
+title: "Abuse: <subdomain>.is-my.app"
+labels: [abuse]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping keep is-my.app safe. Do not include personal data or credentials here.
+        For sensitive reports, contact the maintainer privately through GitHub (@jn-aman).
+  - type: input
+    id: subdomain
+    attributes:
+      label: Subdomain
+      placeholder: example.is-my.app
+    validations:
+      required: true
+  - type: dropdown
+    id: category
+    attributes:
+      label: Type of abuse
+      options:
+        - Phishing or impersonation
+        - Malware
+        - Spam
+        - Illegal content
+        - Copyright infringement
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: What did you see, and where? Links and screenshots help.
+    validations:
+      required: true

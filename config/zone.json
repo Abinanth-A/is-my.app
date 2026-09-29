@@ -1,0 +1,9 @@
+{
+  "zone": "is-my.app",
+  "repo": "jn-aman/is-my.app",
+  "pagesPrefix": "ismy-",
+  "sitePagesProject": "is-my-app",
+  "maintainers": ["jn-aman"],
+  "maxDomainsPerUser": 5,
+  "minAccountAgeDays": 14
+}

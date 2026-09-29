@@ -1,0 +1,287 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>is-my.app · free subdomains for developers</title>
+  <meta name="description" content="Claim yourname.is-my.app for free. Point it anywhere, or hand us an open-source repo and we build and host it. One JSON file, one pull request." />
+  <meta name="theme-color" content="#060607" />
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+  <meta property="og:title" content="is-my.app" />
+  <meta property="og:description" content="Free subdomains for developers. One JSON file, one pull request, live in seconds." />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://is-my.app" />
+  <meta property="og:image" content="https://is-my.app/og.jpg" />
+  <meta name="twitter:card" content="summary_large_image" />
+</head>
+<body>
+  <a class="skip" href="#claim">Skip to claim a subdomain</a>
+
+  <!-- Intro loader -->
+  <div class="loader" aria-hidden="true">
+    <div class="loader__brand"><span>is</span><span>-</span><span>my</span><span>.</span><span>app</span></div>
+    <div class="loader__count"><span class="loader__num">000</span><span class="loader__pct">%</span></div>
+    <div class="loader__line"></div>
+  </div>
+
+  <canvas class="gl" aria-hidden="true"></canvas>
+  <div class="grain" aria-hidden="true"></div>
+  <div class="vignette" aria-hidden="true"></div>
+  <div class="cursor" aria-hidden="true"><div class="cursor__dot"></div><div class="cursor__ring"><span class="cursor__label"></span></div></div>
+
+  <header class="nav">
+    <a class="nav__logo" href="#top" aria-label="is-my.app home">
+      <span class="nav__pulse" aria-hidden="true"></span>is-my<span class="accent">.app</span>
+    </a>
+    <nav class="nav__links" aria-label="Primary">
+      <a href="#how" data-cursor="scroll">How</a>
+      <a href="#modes" data-cursor="scroll">Modes</a>
+      <a href="#registry" data-cursor="scroll">Registry</a>
+      <a href="#faq" data-cursor="scroll">FAQ</a>
+      <a href="https://github.com/jn-aman/is-my.app" target="_blank" rel="noopener" data-cursor="open">GitHub</a>
+    </nav>
+    <a class="btn btn--pill magnetic" href="#claim"><span>Claim yours</span></a>
+  </header>
+
+  <main id="top">
+    <!-- HERO -->
+    <section class="hero" data-scene="hero">
+      <p class="hero__eyebrow reveal-up"><span class="dot"></span> Free subdomains · open source · zero servers</p>
+      <h1 class="hero__title" aria-label="yourname.is-my.app">
+        <span class="hero__line hero__line--sub"><span class="scramble" data-words="yourname,aman,this,pixel,nova,shipit,hello,lab,portfolio,zen">yourname</span></span>
+        <span class="hero__line hero__line--zone"><span class="split">.is-my.app</span></span>
+      </h1>
+      <div class="hero__foot">
+        <p class="hero__lede reveal-up">Point it at anything you host, or hand us an <em>open-source repo</em> and we will build and ship it. One JSON file. One pull request. Yours.</p>
+        <div class="hero__ctas reveal-up">
+          <a class="btn btn--primary magnetic" href="#claim"><span>Claim a subdomain</span><i aria-hidden="true">↘</i></a>
+          <a class="btn btn--ghost magnetic" href="https://github.com/jn-aman/is-my.app" target="_blank" rel="noopener"><span>Star on GitHub</span><i aria-hidden="true">↗</i></a>
+        </div>
+      </div>
+      <div class="hero__scroll" aria-hidden="true"><span>Scroll</span><i></i></div>
+    </section>
+
+    <!-- MARQUEE -->
+    <section class="marquee" aria-label="Recently claimed subdomains">
+      <div class="marquee__track" data-marquee></div>
+      <div class="marquee__track marquee__track--rev" data-marquee data-dir="-1"></div>
+    </section>
+
+    <!-- HOW -->
+    <section class="how" id="how" data-scene="how">
+      <div class="how__rail">
+        <div class="how__intro">
+          <p class="kicker">How it works</p>
+          <h2 class="display split-lines">One file.<br /> One PR.<br /> <span class="serif">Live.</span></h2>
+          <p class="how__hint" aria-hidden="true">Keep scrolling <i>→</i></p>
+        </div>
+        <article class="step" data-step="1">
+          <div class="step__meta"><span class="step__n">01</span><h3>Write a tiny JSON file</h3><p>Add <code>domains/yourname.json</code> saying who you are and where it should point. That is the whole application.</p></div>
+          <div class="window">
+            <div class="window__bar"><i></i><i></i><i></i><span>domains/aman.json</span></div>
+            <pre class="window__code"><code data-typer>{
+  <k>"owner"</k>: { <k>"github"</k>: <s>"jn-aman"</s> },
+  <k>"description"</k>: <s>"my corner of the internet"</s>,
+  <k>"records"</k>: {
+    <k>"CNAME"</k>: <s>"aman.wiki"</s>
+  }
+}</code></pre>
+          </div>
+        </article>
+        <article class="step" data-step="2">
+          <div class="step__meta"><span class="step__n">02</span><h3>Open a pull request</h3><p>A bot checks the schema, confirms you own the GitHub account, and makes sure the name is free. You get a verdict in seconds.</p></div>
+          <div class="window window--pr">
+            <div class="window__bar"><i></i><i></i><i></i><span>Pull request #42</span></div>
+            <div class="pr">
+              <div class="pr__title">Claim <b>aman</b>.is-my.app <span class="pr__tag">open</span></div>
+              <ul class="checks">
+                <li><span class="tick"></span> Schema is valid</li>
+                <li><span class="tick"></span> Owner matches PR author <b>@jn-aman</b></li>
+                <li><span class="tick"></span> <b>aman</b> is available</li>
+                <li><span class="tick"></span> Target <b>aman.wiki</b> resolves</li>
+              </ul>
+              <div class="pr__merge"><span class="pr__merge-dot"></span> Ready to merge</div>
+            </div>
+          </div>
+        </article>
+        <article class="step" data-step="3">
+          <div class="step__meta"><span class="step__n">03</span><h3>Merge. It is live.</h3><p>On merge, CI writes your DNS on Cloudflare, or builds your repo and ships it to the edge. No tickets, no waiting on a human.</p></div>
+          <div class="window window--term">
+            <div class="window__bar"><i></i><i></i><i></i><span>~ zsh</span></div>
+            <pre class="term"><span class="term__line"><span class="term__p">$</span> dig +short aman.is-my.app</span>
+<span class="term__line term__out">aman.wiki.</span>
+<span class="term__line term__out">104.21.35.129</span>
+<span class="term__line"><span class="term__p">$</span> curl -sI https://aman.is-my.app | head -1</span>
+<span class="term__line term__ok">HTTP/2 200</span>
+<span class="term__line term__live"><span class="live-dot"></span> live on the edge in 38s</span></pre>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- STATS -->
+    <section class="stats" aria-label="Numbers">
+      <div class="stat"><span class="stat__num" data-count="0" data-prefix="$">$0</span><span class="stat__label">forever. Really.</span></div>
+      <div class="stat"><span class="stat__num" data-count="60" data-prefix="&lt;" data-suffix="s">&lt;60s</span><span class="stat__label">from merge to live DNS</span></div>
+      <div class="stat"><span class="stat__num" data-count="330" data-suffix="+">330+</span><span class="stat__label">edge cities serving your site</span></div>
+      <div class="stat"><span class="stat__num" data-count="1">1</span><span class="stat__label">pull request. That is it.</span></div>
+    </section>
+
+    <!-- MODES -->
+    <section class="modes" id="modes" data-scene="modes">
+      <div class="modes__head">
+        <p class="kicker">Two ways to use it</p>
+        <h2 class="display split-lines">Point it. <span class="serif">Or</span> ship it.</h2>
+      </div>
+      <div class="modes__grid">
+        <article class="card tilt" data-cursor="view">
+          <div class="card__glow" aria-hidden="true"></div>
+          <span class="card__tag">Mode 01</span>
+          <h3 class="card__title">Point</h3>
+          <p class="card__body">Already hosting on GitHub Pages, Vercel, Netlify, Cloudflare Pages or your own box? Add a <code>CNAME</code>, <code>A</code>, <code>AAAA</code>, <code>MX</code> or <code>TXT</code> record and it resolves in under a minute.</p>
+          <pre class="card__code"><code>"records": { "CNAME": "you.github.io" }</code></pre>
+          <ul class="card__list"><li>Bring any host</li><li>Email and verification records</li><li>Optional Cloudflare proxy</li></ul>
+        </article>
+        <article class="card card--alt tilt" data-cursor="view">
+          <div class="card__glow" aria-hidden="true"></div>
+          <span class="card__tag">Mode 02</span>
+          <h3 class="card__title">Deploy</h3>
+          <p class="card__body">No hosting at all? Give us a public GitHub repo, a build command and an output folder. We build it in an isolated runner and serve it from Cloudflare's edge. Push to your branch and it redeploys.</p>
+          <pre class="card__code"><code>"deploy": { "repo": "you/site", "build": "npm run build", "output": "dist" }</code></pre>
+          <ul class="card__list"><li>Any static framework</li><li>Automatic HTTPS</li><li>Auto redeploy on push</li></ul>
+        </article>
+      </div>
+    </section>
+
+    <!-- STATEMENT -->
+    <section class="statement" data-scene="statement">
+      <p class="statement__text" data-light>No servers to rent. No bills to pay. No forms to fill. Just a JSON file, a pull request, and a name on the internet that is <span class="serif">actually yours.</span></p>
+    </section>
+
+    <!-- CLAIM -->
+    <section class="claim" id="claim" data-scene="claim">
+      <div class="claim__head">
+        <p class="kicker">Claim yours</p>
+        <h2 class="display split-lines">Pick a name. <span class="serif">We will write the PR.</span></h2>
+      </div>
+      <div class="claim__grid">
+        <form class="builder" novalidate autocomplete="off">
+          <label class="field field--name">
+            <span class="field__label">Subdomain</span>
+            <span class="namebox">
+              <input id="name" name="name" type="text" inputmode="url" spellcheck="false" placeholder="yourname" maxlength="63" aria-describedby="name-status" />
+              <span class="namebox__zone">.is-my.app</span>
+            </span>
+            <span class="status" id="name-status" role="status" aria-live="polite" data-state="idle">Type a name to check it</span>
+          </label>
+
+          <div class="seg" role="tablist" aria-label="Mode">
+            <button type="button" role="tab" aria-selected="true" data-mode="records">Point</button>
+            <button type="button" role="tab" aria-selected="false" data-mode="deploy">Deploy a repo</button>
+            <span class="seg__pill" aria-hidden="true"></span>
+          </div>
+
+          <label class="field">
+            <span class="field__label">Your GitHub username</span>
+            <input id="github" type="text" spellcheck="false" placeholder="octocat" maxlength="39" />
+          </label>
+
+          <div class="mode mode--records" data-panel="records">
+            <div class="field-row">
+              <label class="field field--type">
+                <span class="field__label">Record</span>
+                <select id="rtype">
+                  <option value="CNAME">CNAME</option>
+                  <option value="A">A</option>
+                  <option value="AAAA">AAAA</option>
+                </select>
+              </label>
+              <label class="field">
+                <span class="field__label" id="target-label">Points to</span>
+                <input id="target" type="text" spellcheck="false" placeholder="you.github.io" />
+              </label>
+            </div>
+          </div>
+
+          <div class="mode mode--deploy" data-panel="deploy" hidden>
+            <label class="field">
+              <span class="field__label">Public GitHub repo</span>
+              <input id="repo" type="text" spellcheck="false" placeholder="octocat/my-site" />
+            </label>
+            <div class="field-row">
+              <label class="field"><span class="field__label">Build command</span><input id="build" type="text" spellcheck="false" placeholder="npm ci &amp;&amp; npm run build" /></label>
+              <label class="field field--short"><span class="field__label">Output</span><input id="output" type="text" spellcheck="false" placeholder="dist" /></label>
+            </div>
+          </div>
+
+          <label class="field">
+            <span class="field__label">What is it? <small>(optional)</small></span>
+            <input id="desc" type="text" maxlength="120" placeholder="My personal site" />
+          </label>
+
+          <div class="builder__actions">
+            <a class="btn btn--primary btn--big magnetic is-disabled" id="pr-link" href="#" target="_blank" rel="noopener" aria-disabled="true"><span>Open pull request</span><i aria-hidden="true">↗</i></a>
+            <button type="button" class="btn btn--ghost" id="copy"><span>Copy JSON</span></button>
+          </div>
+          <p class="builder__hint">GitHub will fork the repo for you and prefill <code>domains/<b data-name>yourname</b>.json</code>. Just hit <b>Propose changes</b>.</p>
+        </form>
+
+        <div class="preview" aria-label="Generated file preview">
+          <div class="window window--preview">
+            <div class="window__bar"><i></i><i></i><i></i><span>domains/<b data-name>yourname</b>.json</span></div>
+            <pre class="window__code"><code id="json-out"></code></pre>
+          </div>
+          <div class="preview__url" aria-hidden="true">
+            <span class="preview__lock">https://</span><b data-name>yourname</b>.is-my.app
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- REGISTRY -->
+    <section class="registry" id="registry" data-scene="registry">
+      <div class="registry__head">
+        <p class="kicker">The registry</p>
+        <h2 class="display"><span class="registry__count" data-registry-count>00</span> <span class="serif">names claimed.</span></h2>
+        <label class="search"><span class="sr-only">Search the registry</span><input type="search" placeholder="Search names, owners, targets" data-registry-search /></label>
+      </div>
+      <ul class="registry__grid" data-registry-grid></ul>
+    </section>
+
+    <!-- FAQ -->
+    <section class="faq" id="faq" data-scene="faq">
+      <div class="faq__head">
+        <p class="kicker">Questions</p>
+        <h2 class="display split-lines">Good <span class="serif">questions.</span></h2>
+      </div>
+      <div class="faq__list">
+        <details><summary>Is it actually free?</summary><p>Yes. DNS runs on Cloudflare's free plan and builds run on GitHub Actions, which is free for public repositories. There is nothing to bill you for.</p></details>
+        <details><summary>How fast does it go live?</summary><p>DNS records are written within a minute of your pull request being merged. Hosted repos take as long as your build, usually one or two minutes.</p></details>
+        <details><summary>I host on Vercel, Netlify or GitHub Pages. Anything special?</summary><p>Add <code>yourname.is-my.app</code> as a custom domain on your host first, then point a CNAME at the target it gives you. For GitHub Pages verification, add a TXT record at <code>_github-pages-challenge-you.yourname</code>.</p></details>
+        <details><summary>What can the deploy mode build?</summary><p>Anything that produces static files: Vite, Astro, Next static export, Hugo, Jekyll, plain HTML. Builds get 15 minutes, up to 20,000 files and 25 MiB per file. We check your branch every hour and redeploy when it moves.</p></details>
+        <details><summary>Do I get HTTPS?</summary><p>Always. In deploy mode Cloudflare issues the certificate for you. In point mode your host issues it, just like any custom domain.</p></details>
+        <details><summary>How many can I claim?</summary><p>Up to five top-level names per GitHub account, plus any nested records under them. Your account needs to be at least two weeks old.</p></details>
+        <details><summary>What is not allowed?</summary><p>Phishing, malware, spam, impersonation, anything illegal. Names that break the rules are removed without notice. Read the <a href="https://github.com/jn-aman/is-my.app/blob/main/TERMS.md" target="_blank" rel="noopener">terms</a>.</p></details>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer__cta">
+      <p class="kicker">Your name is waiting</p>
+      <a class="btn btn--primary btn--big magnetic" href="#claim"><span>Claim it now</span><i aria-hidden="true">↘</i></a>
+    </div>
+    <div class="footer__giant" aria-hidden="true" data-giant>is-my.app</div>
+    <div class="footer__bar">
+      <span>Open source under MIT. Built by <a href="https://aman.wiki" target="_blank" rel="noopener">Aman</a>.</span>
+      <span class="footer__links">
+        <a href="https://github.com/jn-aman/is-my.app" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://github.com/jn-aman/is-my.app/blob/main/TERMS.md" target="_blank" rel="noopener">Terms</a>
+        <a href="https://github.com/jn-aman/is-my.app/issues/new?template=report-abuse.yml" target="_blank" rel="noopener">Report abuse</a>
+      </span>
+    </div>
+  </footer>
+
+  <script type="module" src="/src/main.js"></script>
+</body>
+</html>

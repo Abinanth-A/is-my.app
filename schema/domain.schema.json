@@ -1,0 +1,122 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/jn-aman/is-my.app/blob/main/schema/domain.schema.json",
+  "title": "is-my.app domain",
+  "description": "One file per subdomain: domains/<name>.json claims <name>.is-my.app. Use either \"records\" (point DNS somewhere) or \"deploy\" (we build and host a public GitHub repo).",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["owner"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "owner": {
+      "type": "object",
+      "description": "Who owns this subdomain. Must match the GitHub account opening the pull request.",
+      "additionalProperties": false,
+      "required": ["github"],
+      "properties": {
+        "github": {
+          "type": "string",
+          "description": "Your GitHub username.",
+          "pattern": "^[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}$"
+        },
+        "email": { "type": "string", "format": "email", "maxLength": 254, "description": "Optional contact email (not published on the website)." }
+      }
+    },
+    "description": { "type": "string", "maxLength": 200, "description": "Short description shown on the website." },
+    "records": {
+      "type": "object",
+      "description": "DNS records for this name. CNAME cannot be combined with other types.",
+      "additionalProperties": false,
+      "minProperties": 1,
+      "properties": {
+        "A": {
+          "type": "array",
+          "description": "Public IPv4 addresses.",
+          "minItems": 1,
+          "maxItems": 10,
+          "uniqueItems": true,
+          "items": { "type": "string", "format": "ipv4" }
+        },
+        "AAAA": {
+          "type": "array",
+          "description": "Public IPv6 addresses.",
+          "minItems": 1,
+          "maxItems": 10,
+          "uniqueItems": true,
+          "items": { "type": "string", "format": "ipv6" }
+        },
+        "CNAME": {
+          "type": "string",
+          "description": "Hostname to alias to, e.g. \"username.github.io\". Cannot point into is-my.app.",
+          "pattern": "^(?=.{1,253}\\.?$)(_?[A-Za-z0-9]([A-Za-z0-9-]*[A-Za-z0-9])?\\.)+[A-Za-z]([A-Za-z0-9-]*[A-Za-z0-9])?\\.?$"
+        },
+        "MX": {
+          "type": "array",
+          "description": "Mail servers. Plain hostnames get priorities 10, 20, 30...",
+          "minItems": 1,
+          "maxItems": 10,
+          "uniqueItems": true,
+          "items": {
+            "oneOf": [
+              { "type": "string", "minLength": 1 },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["target", "priority"],
+                "properties": {
+                  "target": { "type": "string", "minLength": 1 },
+                  "priority": { "type": "integer", "minimum": 0, "maximum": 65535 }
+                }
+              }
+            ]
+          }
+        },
+        "TXT": {
+          "description": "One TXT value or a list of them.",
+          "oneOf": [
+            { "type": "string", "minLength": 1, "maxLength": 2048 },
+            {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 10,
+              "uniqueItems": true,
+              "items": { "type": "string", "minLength": 1, "maxLength": 2048 }
+            }
+          ]
+        }
+      },
+      "if": { "required": ["CNAME"] },
+      "then": { "maxProperties": 1 }
+    },
+    "proxied": {
+      "type": "boolean",
+      "default": false,
+      "description": "Route traffic through Cloudflare's proxy. Top-level names with A, AAAA or CNAME records only."
+    },
+    "deploy": {
+      "type": "object",
+      "description": "Build a public GitHub repository and host it on Cloudflare Pages (static output only).",
+      "additionalProperties": false,
+      "required": ["repo"],
+      "properties": {
+        "repo": {
+          "type": "string",
+          "description": "Public GitHub repository as \"owner/name\".",
+          "pattern": "^[A-Za-z0-9](?:[A-Za-z0-9]|-(?=[A-Za-z0-9])){0,38}/[A-Za-z0-9_.-]{1,100}$"
+        },
+        "branch": { "type": "string", "default": "main", "description": "Branch to build. Redeployed automatically when it changes." },
+        "build": { "type": "string", "default": "", "maxLength": 500, "description": "Build command, e.g. \"npm ci && npm run build\". Empty means the files are already static." },
+        "output": { "type": "string", "default": ".", "description": "Directory with the built site, relative to root." },
+        "root": { "type": "string", "default": ".", "description": "Directory the build runs in, relative to the repository." },
+        "node": { "type": "string", "default": "22", "pattern": "^(1[89]|2[0-9])(\\.[0-9]+){0,2}$", "description": "Node.js version for the build." }
+      }
+    }
+  },
+  "oneOf": [
+    { "required": ["records"], "not": { "required": ["deploy"] } },
+    { "required": ["deploy"], "not": { "required": ["records"] } }
+  ],
+  "dependentSchemas": {
+    "deploy": { "not": { "required": ["proxied"] } }
+  }
+}

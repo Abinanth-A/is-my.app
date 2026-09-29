@@ -1,0 +1,200 @@
+name: Publish
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'domains/**'
+      - 'config/**'
+      - 'scripts/**'
+      - '.github/workflows/publish.yml'
+  workflow_dispatch:
+    inputs:
+      target:
+        description: 'What to deploy: changed | all | dns (DNS only) | name:<subdomain>'
+        type: string
+        default: all
+  schedule:
+    # Hourly: redeploy hosted sites whose upstream branch has new commits.
+    - cron: '17 * * * *'
+
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  dns:
+    if: github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/validate.mjs
+      - run: node scripts/sync-dns.mjs
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+  plan:
+    needs: dns
+    if: always() && (needs.dns.result == 'success' || needs.dns.result == 'skipped') && inputs.target != 'dns'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      count: ${{ steps.plan.outputs.count }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - id: plan
+        run: node scripts/deploy-plan.mjs
+        env:
+          PLAN_MODE: ${{ github.event_name == 'push' && 'changed' || github.event_name == 'schedule' && 'stale' || inputs.target }}
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.sha }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+  # SECURITY: this job builds untrusted third-party code. It has no token permissions and
+  # no secrets. The build itself runs in a throwaway container that only sees the source
+  # folder. Matrix values are user-controlled: pass them through env and quote them, never
+  # interpolate them into a run script.
+  build:
+    needs: plan
+    if: needs.plan.result == 'success' && needs.plan.outputs.count != '0'
+    name: build ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions: {}
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ matrix.repo }}
+          ref: ${{ matrix.sha }}
+          path: src
+          persist-credentials: false
+      - name: Build (isolated container, 15 minute limit)
+        env:
+          BUILD: ${{ matrix.build }}
+          ROOT: ${{ matrix.root }}
+          NODE: ${{ matrix.node }}
+        run: |
+          if [ -z "$BUILD" ]; then echo "No build command: deploying files as they are."; exit 0; fi
+          image="mirror.gcr.io/library/node:$NODE"
+          docker pull -q "$image" || { image="docker.io/library/node:$NODE"; docker pull -q "$image"; }
+          set +e
+          timeout 15m docker run --rm --name build \
+            --user "$(id -u):$(id -g)" -e HOME=/tmp -e CI=true \
+            --memory 6g --pids-limit 4096 --security-opt no-new-privileges \
+            -v "$PWD/src:/src" -w "/src/$ROOT" \
+            "$image" bash -c "$BUILD"
+          code=$?
+          docker rm -f build >/dev/null 2>&1
+          if [ "$code" -eq 124 ]; then echo "::error::Build timed out after 15 minutes"; fi
+          exit "$code"
+      - name: Collect static output
+        env:
+          ROOT: ${{ matrix.root }}
+          OUTPUT: ${{ matrix.output }}
+        run: |
+          out="$(realpath -m "src/$ROOT/$OUTPUT")"
+          case "$out" in "$PWD/src" | "$PWD/src/"*) ;; *) echo "::error::Output path escapes the repository"; exit 1 ;; esac
+          [ -d "$out" ] || { echo "::error::Output directory '$ROOT/$OUTPUT' does not exist after the build"; exit 1; }
+          mkdir site
+          cp -a "$out/." site/
+          # Static files only: no symlinks, no Pages Functions or advanced-mode workers, no git metadata.
+          find site -type l -print -delete
+          find site -name .git -prune -exec rm -rf {} +
+          rm -rf site/_worker.js site/_routes.json site/functions
+          files=$(find site -type f | wc -l)
+          [ "$files" -gt 0 ] || { echo "::error::The output directory is empty"; exit 1; }
+          [ "$files" -le 20000 ] || { echo "::error::Too many files: $files (Cloudflare Pages allows 20000)"; exit 1; }
+          big=$(find site -type f -size +25M | head -n 5)
+          [ -z "$big" ] || { echo "::error::Files larger than 25 MiB are not allowed:"; echo "$big"; exit 1; }
+          echo "Collected $files files ($(du -sh site | cut -f1))"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: site-${{ matrix.project }}
+          path: site
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
+
+  # Has secrets, but never checks out or runs user code: it only uploads the static artifact.
+  deploy:
+    needs: [plan, build]
+    if: always() && needs.plan.result == 'success' && needs.plan.outputs.count != '0'
+    name: deploy ${{ matrix.name }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      NAME: ${{ matrix.name }}
+      PROJECT: ${{ matrix.project }}
+      REPO: ${{ matrix.repo }}
+      SHA: ${{ matrix.sha }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/download-artifact@v4
+        with:
+          name: site-${{ matrix.project }}
+          path: ${{ runner.temp }}/deploy/site
+      - name: Sanitize artifact
+        working-directory: ${{ runner.temp }}/deploy
+        run: |
+          find site -type l -delete
+          rm -rf site/_worker.js site/_routes.json site/functions
+      - name: Ensure project, custom domain and DNS
+        run: node scripts/pages-attach.mjs "$PROJECT" "$NAME.is-my.app"
+      # Runs from a directory that contains only site/, so wrangler finds no functions/ or config.
+      - name: Deploy to Cloudflare Pages
+        working-directory: ${{ runner.temp }}/deploy
+        run: >-
+          npx --yes wrangler@4 pages deploy site
+          --project-name "$PROJECT" --branch main
+          --commit-hash "$SHA" --commit-message "$REPO@$SHA" --commit-dirty=true
+
+  gc:
+    needs: dns
+    if: always() && needs.dns.result == 'success' && github.event_name == 'workflow_dispatch' && inputs.target == 'all'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: node scripts/pages-gc.mjs
+        env:
+          GC_CONFIRM: '1'
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

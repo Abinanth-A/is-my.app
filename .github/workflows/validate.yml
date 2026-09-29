@@ -1,0 +1,66 @@
+name: Validate PR
+
+# pull_request_target runs in the context of the base repository, so it can comment on PRs
+# from forks. Because this token can write, we NEVER check out or run code from the PR:
+# the checkout below is the base branch, and scripts/check-pr.mjs reads the PR's changed
+# files through the GitHub API as plain data.
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, edited]
+
+concurrency:
+  group: validate-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
+      issues: write
+    outputs:
+      valid: ${{ steps.check.outputs.valid }}
+      mode: ${{ steps.check.outputs.mode }}
+      sha: ${{ steps.check.outputs.sha }}
+    steps:
+      # Base branch only. Never set `ref` to the PR head here.
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - id: check
+        run: node scripts/check-pr.mjs
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+
+  automerge:
+    needs: check
+    if: vars.AUTO_MERGE == 'true' && needs.check.outputs.valid == 'true' && needs.check.outputs.mode == 'records'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: write
+      actions: write
+    steps:
+      # --match-head-commit makes sure we merge exactly the commit that was validated.
+      - name: Merge
+        run: gh pr merge "$PR_NUMBER" --repo "$REPO" --squash --match-head-commit "$SHA"
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          SHA: ${{ needs.check.outputs.sha }}
+      # Merges made with GITHUB_TOKEN do not trigger push workflows, so start the DNS sync explicitly.
+      - name: Publish DNS
+        run: gh workflow run publish.yml --repo "$REPO" --ref main -f target=dns
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
