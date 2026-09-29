@@ -13,7 +13,7 @@ Browse live apps at [is-my.app](https://is-my.app). The registry is also availab
 3. Open a pull request. A bot validates it and comments with the result.
 4. Valid pull requests are merged automatically, and your app is live within a few minutes.
 
-Your editor autocompletes the format if you keep the `$schema` line.
+The `$schema` line is optional. Keep it and your editor autocompletes the format.
 
 ### Option 1: point DNS somewhere
 
@@ -68,6 +68,7 @@ Hosted apps are redeployed automatically, within about an hour, whenever your br
 - One file per name, lowercase `a-z`, `0-9` and `-`. Reserved names (see [`config/reserved.json`](config/reserved.json)) cannot be claimed.
 - `owner.github` must be the account that opens the pull request. Only the owner can change or remove a domain.
 - Your GitHub account must be at least 14 days old.
+- If your account was created after a domain was last changed, you cannot edit or remove it by pull request, because the username may have been reused. Open an issue and a maintainer will help.
 - Up to 5 apps (top-level names) per person. Nested names do not count as apps.
 - Up to 50 DNS records per person across all of their names (a hosted app counts as one).
 - Nested names like `docs.pomodoro.is-my.app` (`domains/docs.pomodoro.json`) are allowed if you own `pomodoro`, for DNS records only (not `deploy` or `proxied`). Nested labels may start with `_` for verification records, like `_dmarc.pomodoro`.
@@ -135,7 +136,7 @@ PLAN_MODE=all npm run plan                 # list hosted deploy targets
 DRY_RUN=1 node scripts/pages-gc.mjs        # list orphaned Pages projects
 ```
 
-Run the `Publish` workflow manually with `target` set to `all`, `changed`, `dns` or `name:<subdomain>`. Running it with `all` also deletes Pages projects that no longer have a domain file.
+Run the `Publish` workflow manually with `target` set to `all`, `stale` (apps behind their branch), `changed`, `dns` or `name:<subdomain>`. Running it with `all` also deletes Pages projects that no longer have a domain file.
 
 ## Reporting abuse
 

@@ -119,36 +119,47 @@ function loopScramble(el) {
 }
 
 /* ---------------- intro ---------------- */
+// The loader starts at once and idles near 90% while the scene, fonts and registry load.
+function loaderIn() {
+  const num = document.querySelector('.loader__num')
+  const counter = { v: 0 }
+  return gsap.timeline({ defaults: { ease: 'expo.out' } })
+    .to('.loader__brand span', { y: 0, duration: 0.8, stagger: 0.06 })
+    .to(counter, { v: 90, duration: 1, ease: 'power2.out', onUpdate: () => (num.textContent = String(Math.round(counter.v)).padStart(3, '0')) }, 0)
+    .to('.loader__line', { scaleX: 0.9, duration: 1, ease: 'power2.out' }, 0)
+}
+
 function intro(heroChars) {
   const tl = gsap.timeline({ defaults: { ease: 'expo.out' } })
   const loader = document.querySelector('.loader')
   if (!reduced) {
     const num = loader.querySelector('.loader__num')
-    const counter = { v: 0 }
-    tl.to('.loader__brand span', { y: 0, duration: 1, stagger: 0.06 })
-      .to(counter, { v: 100, duration: 1.3, ease: 'power2.inOut', onUpdate: () => (num.textContent = String(Math.round(counter.v)).padStart(3, '0')) }, 0)
-      .to('.loader__line', { scaleX: 1, duration: 1.3, ease: 'power2.inOut' }, 0)
-      .to('.loader__brand span', { y: '-110%', duration: 0.7, stagger: 0.04, ease: 'expo.in' }, 1.35)
-      .to(loader, { clipPath: 'inset(0 0 100% 0)', duration: 1.1, ease: 'expo.inOut' }, 1.7)
+    tl.call(() => (num.textContent = '100'))
+      .to('.loader__line', { scaleX: 1, duration: 0.35, ease: 'power2.out' }, 0)
+      .to('.loader__brand span', { y: '-110%', duration: 0.7, stagger: 0.04, ease: 'expo.in' }, 0.05)
+      .to(loader, { clipPath: 'inset(0 0 100% 0)', duration: 1.1, ease: 'expo.inOut' }, 0.4)
       .set(loader, { display: 'none' })
   } else {
     loader.style.display = 'none'
   }
-  const at = reduced ? 0 : 2.05
+  const at = reduced ? 0 : 0.75
   tl.from('.hero__line--sub .scramble', { yPercent: 110, duration: 1.4 }, at)
     .from(heroChars, { yPercent: 115, rotate: 8, duration: 1.3, stagger: 0.035 }, at + 0.1)
     .from('.hero .reveal-up', { y: 30, autoAlpha: 0, duration: 1.1, stagger: 0.1 }, at + 0.4)
-    .from('.nav', { yPercent: -120, duration: 1.1 }, at + 0.3)
+    // explicit end state, then hand transform back to CSS so .is-hidden works on scroll
+    .fromTo('.nav', { yPercent: -120 }, { yPercent: 0, y: 0, duration: 1.1, clearProps: 'transform' }, at + 0.3)
     .from('.hero__scroll', { autoAlpha: 0, duration: 1 }, at + 0.9)
   if (gl) {
     gl.state.scale = reduced ? 1 : 0.2
-    tl.to(gl.state, { scale: 1, duration: 2.4, ease: 'elastic.out(1, 0.55)' }, reduced ? 0 : 1.6)
+    tl.to(gl.state, { scale: 1, duration: 2.4, ease: 'elastic.out(1, 0.55)' }, reduced ? 0 : at - 0.45)
   }
   tl.add(() => {
     document.body.classList.remove('is-loading')
     lenis?.start()
     ScrollTrigger.refresh()
   }, at + 0.2)
+  // Reduced motion: same end state, no movement.
+  if (reduced) tl.progress(1, false)
   return tl
 }
 
@@ -272,7 +283,7 @@ function initReveals() {
   })
 
   const statement = document.querySelector('[data-light]')
-  const words = SplitText.create(statement, { type: 'words', wordsClass: 'word' }).words
+  const words = SplitText.create(statement, { type: 'words', wordsClass: 'word', aria: 'none' }).words
   if (!reduced) {
     gsap.to(words, {
       opacity: 1, stagger: 0.1, ease: 'none',
@@ -348,7 +359,7 @@ function initPointer() {
 
   // footer: letters swell toward the cursor on the width + weight axes
   const giant = document.querySelector('[data-giant]')
-  const letters = SplitText.create(giant, { type: 'chars', charsClass: 'char' }).chars
+  const letters = SplitText.create(giant, { type: 'chars', charsClass: 'char', aria: 'none' }).chars
   let centers = []
   const measure = () => (centers = letters.map((c) => { const r = c.getBoundingClientRect(); return r.left + r.width / 2 }))
   ScrollTrigger.create({ trigger: giant, start: 'top bottom', onEnter: measure, onRefresh: measure })
@@ -392,7 +403,9 @@ function initKeys() {
 
 /* ---------------- boot ---------------- */
 async function boot() {
-  const [registry] = await Promise.all([loadRegistry(), initGL(), document.fonts.ready])
+  const ready = Promise.all([loadRegistry(), initGL(), document.fonts.ready])
+  const loading = reduced ? null : loaderIn()
+  const [registry] = await ready
   fillMarquees(registry)
   renderRegistry(document.querySelector('.registry'), registry)
   initClaim(document.querySelector('.builder'), registry)
@@ -401,13 +414,14 @@ async function boot() {
   initKeys()
 
   initScroll()
-  const heroChars = SplitText.create('.hero .split', { type: 'chars', charsClass: 'char' }).chars
+  const heroChars = SplitText.create('.hero .split', { type: 'chars', charsClass: 'char', aria: 'none' }).chars
   initNav()
   initHow()
   initReveals()
   initMarquee()
   initPointer()
   choreograph()
+  await loading
   intro(heroChars)
   const scramble = document.querySelector('.scramble')
   fitWord(scramble, scramble.textContent, 0)

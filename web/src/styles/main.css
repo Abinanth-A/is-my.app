@@ -3,7 +3,7 @@
   --bg-2: #0d0d10;
   --fg: #f1efe8;
   --muted: rgba(241, 239, 232, 0.58);
-  --faint: rgba(241, 239, 232, 0.32);
+  --faint: rgba(241, 239, 232, 0.5);
   --line: rgba(241, 239, 232, 0.12);
   --glass: rgba(18, 18, 22, 0.55);
   --accent: #c6ff3d;
@@ -214,7 +214,7 @@ s, .j-s { color: var(--accent); text-decoration: none; }
 .checks li.is-done .tick { background: var(--accent); border-color: var(--accent); }
 .checks li.is-done .tick::after { transform: rotate(45deg) scale(1); }
 .checks li.is-done { color: var(--fg); }
-.pr__merge { display: inline-flex; align-items: center; gap: 10px; padding: 12px 18px; border-radius: 12px; background: rgba(241,239,232,.05); font-weight: 600; font-size: 14px; color: var(--faint); transition: background .4s, color .4s; }
+.pr__merge { display: inline-flex; align-items: center; gap: 10px; padding: 12px 18px; border-radius: 12px; background: rgba(241,239,232,.05); font-weight: 600; font-size: 14px; color: var(--muted); transition: background .4s, color .4s; }
 .pr__merge-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
 .pr__merge.is-ready { background: var(--accent); color: var(--accent-ink); }
 
@@ -254,7 +254,7 @@ s, .j-s { color: var(--accent); text-decoration: none; }
 .card--alt .card__title { font-family: var(--serif); font-style: italic; font-weight: 400; letter-spacing: -0.04em; }
 .card__body { color: var(--muted); margin: 0 0 26px; max-width: 520px; }
 .card__body code { color: var(--fg); }
-.card__code { margin: auto 0 22px; padding: 16px 18px; border-radius: 14px; background: rgba(0,0,0,.4); border: 1px solid var(--line); font-size: 13px; color: var(--accent); overflow-x: auto; white-space: pre; transform: translateZ(24px); }
+.card__code { margin: auto 0 22px; padding: 16px 18px; border-radius: 14px; background: rgba(0,0,0,.4); border: 1px solid var(--line); font-size: 13px; color: var(--accent); white-space: pre-wrap; overflow-wrap: anywhere; transform: translateZ(24px); }
 .card__list { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; }
 .card__list li { padding: 8px 14px; border-radius: 999px; border: 1px solid var(--line); font-size: 13px; color: var(--muted); }
 
