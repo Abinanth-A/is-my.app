@@ -1,2 +1,4 @@
 User-agent: *
 Allow: /
+
+Sitemap: https://is-my.app/sitemap.xml
