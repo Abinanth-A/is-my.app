@@ -1,4 +1,5 @@
 import { highlight } from './claim.js'
+import { trackEvent } from './analytics.js'
 
 const owner = { github: 'you' }
 
@@ -64,21 +65,29 @@ export function initRecipes(root) {
 
   tabs.addEventListener('click', (e) => {
     const b = e.target.closest('button')
-    if (b) select(buttons.indexOf(b))
+    if (b) {
+      const index = buttons.indexOf(b)
+      select(index)
+      trackEvent('Recipe selected', { label: RECIPES[index].label, name: RECIPES[index].name })
+    }
   })
   tabs.addEventListener('keydown', (e) => {
     const step = { ArrowDown: 1, ArrowRight: 1, ArrowUp: -1, ArrowLeft: -1 }[e.key]
     if (!step) return
     e.preventDefault()
     const i = buttons.indexOf(document.activeElement)
-    select((i + step + buttons.length) % buttons.length, true)
+    const next = (i + step + buttons.length) % buttons.length
+    select(next, true)
+    trackEvent('Recipe selected', { label: RECIPES[next].label, name: RECIPES[next].name })
   })
   copy.addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText(json)
       copy.textContent = 'copied'
+      trackEvent('Recipe code copied', { recipe: file.textContent || 'unknown' })
     } catch {
       copy.textContent = 'failed'
+      trackEvent('Recipe code copy failed', { recipe: file.textContent || 'unknown' })
     }
     setTimeout(() => (copy.textContent = 'copy'), 1600)
   })

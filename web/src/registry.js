@@ -1,3 +1,5 @@
+import { trackEvent } from './analytics.js'
+
 const esc = (s = '') => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c])
 
 export async function loadRegistry() {
@@ -5,9 +7,10 @@ export async function loadRegistry() {
     const res = await fetch('/domains.json', { cache: 'no-cache' })
     if (!res.ok) throw new Error(res.statusText)
     const data = await res.json()
-    return { reserved: data.reserved || [], domains: data.domains || [], zone: data.zone || 'is-my.app' }
-  } catch {
-    return { reserved: [], domains: [], zone: 'is-my.app' }
+    return { reserved: data.reserved || [], domains: data.domains || [], zone: data.zone || 'is-my.app', error: false }
+  } catch (err) {
+    trackEvent('Registry load failed', { reason: err instanceof Error ? err.message : 'unknown error' })
+    return { reserved: [], domains: [], zone: 'is-my.app', error: true }
   }
 }
 
@@ -46,8 +49,32 @@ export function renderRegistry(section, registry) {
     if (!needle) html += ['your-app-name', 'your-next-idea', 'your-game'].map(ghost).join('')
     if (needle && !list.length) html = `<li class="registry__empty">Nothing matches "${esc(q)}". Which means that name might be free.</li>`
     grid.innerHTML = html
+    return list.length
   }
-  search.addEventListener('input', () => draw(search.value))
+
+  let searchTimer
+  search.addEventListener('input', () => {
+    const resultCount = draw(search.value)
+    clearTimeout(searchTimer)
+    const query = search.value.trim()
+    searchTimer = setTimeout(() => {
+      trackEvent('Registry search completed', {
+        queryLength: query.length,
+        resultCount,
+        cleared: query.length === 0,
+      })
+    }, 400)
+  })
+
+  grid.addEventListener('click', (event) => {
+    const target = event.target
+    if (!(target instanceof Element)) return
+    const link = target.closest('a.entry')
+    if (!link || !grid.contains(link)) return
+    const name = link.querySelector('.entry__name')?.firstChild?.textContent?.trim()
+    if (name) trackEvent('Registry app opened', { name })
+  })
+
   draw()
 }
 

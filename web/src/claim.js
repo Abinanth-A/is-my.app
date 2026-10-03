@@ -1,11 +1,102 @@
+import { trackEvent } from './analytics.js'
+
 const REPO = 'jn-aman/is-my.app'
 const LABEL = /^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$/
 const GH_USER = /^[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}$/i
-const HOST = /^(?=.{1,253}$)([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,63}\.?$/i
-const IPV4 = /^(25[0-5]|2[0-4]\d|1?\d?\d)(\.(25[0-5]|2[0-4]\d|1?\d?\d)){3}$/
-const REPO_RE = /^[a-z\d](?:[a-z\d-]{0,38})\/[\w.-]{1,100}$/i
+const HOST_LABEL = /^_?[a-z0-9]([a-z0-9-]*[a-z0-9])?$/i
+const TLD = /^[a-z]([a-z0-9-]*[a-z0-9])?$/i
+const IPV4_OCTET = '(?:25[0-5]|2[0-4]\\d|1\\d\\d|[1-9]?\\d)'
+const IPV4 = new RegExp(`^${IPV4_OCTET}(?:\\.${IPV4_OCTET}){3}$`)
+const REPO_RE = /^[a-z\d](?:[a-z\d]|-(?=[a-z\d])){0,38}\/[\w.-]{1,100}$/i
+const REL_PATH_RE = /^[\w.\/@+-]+$/
+const PRINTABLE = /^[^\x00-\x1f\x7f]*$/
 
 const esc = (s) => s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c])
+
+const V4_BLOCKED = [
+  ['0.0.0.0', 8], ['10.0.0.0', 8], ['100.64.0.0', 10], ['127.0.0.0', 8], ['169.254.0.0', 16],
+  ['172.16.0.0', 12], ['192.0.0.0', 24], ['192.0.2.0', 24], ['192.88.99.0', 24], ['192.168.0.0', 16],
+  ['198.18.0.0', 15], ['198.51.100.0', 24], ['203.0.113.0', 24], ['224.0.0.0', 4], ['240.0.0.0', 4],
+]
+const V6_BLOCKED = [['2001::', 23], ['2001:db8::', 32], ['2002::', 16], ['3fff::', 20]]
+
+function ipv4Integer(ip) {
+  return ip.split('.').reduce((value, octet) => value * 256 + Number(octet), 0)
+}
+
+export function isPublicIPv4(ip) {
+  if (!IPV4.test(ip)) return false
+  return !V4_BLOCKED.some(([base, bits]) => isInIPv4Range(ip, base, bits))
+}
+
+function isInIPv4Range(ip, base, bits) {
+  const size = 2 ** (32 - bits)
+  return Math.floor(ipv4Integer(ip) / size) === Math.floor(ipv4Integer(base) / size)
+}
+
+function ipv6Value(input) {
+  if (typeof input !== 'string' || input.includes('%')) return null
+  let address = input.toLowerCase()
+  const embeddedV4 = address.match(/(\d+\.\d+\.\d+\.\d+)$/)
+  if (embeddedV4) {
+    if (!IPV4.test(embeddedV4[1])) return null
+    const value = ipv4Integer(embeddedV4[1])
+    address = `${address.slice(0, -embeddedV4[1].length)}${(value >>> 16).toString(16)}:${(value & 0xffff).toString(16)}`
+  } else if (address.includes('.')) {
+    return null
+  }
+
+  if ((address.match(/::/g) || []).length > 1) return null
+  let groups
+  if (address.includes('::')) {
+    const [left, right] = address.split('::')
+    const head = left ? left.split(':') : []
+    const tail = right ? right.split(':') : []
+    const zeros = 8 - head.length - tail.length
+    if (zeros < 1) return null
+    groups = [...head, ...Array(zeros).fill('0'), ...tail]
+  } else {
+    groups = address.split(':')
+    if (groups.length !== 8) return null
+  }
+  if (groups.length !== 8 || groups.some((group) => !/^[\da-f]{1,4}$/i.test(group))) return null
+  return groups.reduce((value, group) => (value << 16n) | BigInt(`0x${group}`), 0n)
+}
+
+function isInIPv6Range(value, base, bits) {
+  const baseValue = ipv6Value(base)
+  const shift = 128n - BigInt(bits)
+  return baseValue !== null && value >> shift === baseValue >> shift
+}
+
+export function isPublicIPv6(ip) {
+  const value = ipv6Value(ip)
+  return value !== null &&
+    value >> 125n === ipv6Value('2000::') >> 125n &&
+    !V6_BLOCKED.some(([base, bits]) => isInIPv6Range(value, base, bits))
+}
+
+export function isHostname(host) {
+  const normalized = host.endsWith('.') ? host.slice(0, -1) : host
+  const labels = normalized.split('.')
+  return normalized.length <= 253 &&
+    labels.length >= 2 &&
+    labels.every((label) => label.length <= 63 && HOST_LABEL.test(label)) &&
+    TLD.test(labels.at(-1))
+}
+
+export function isRelPath(path) {
+  return typeof path === 'string' && path.length > 0 && path.length <= 200 &&
+    REL_PATH_RE.test(path) && !path.startsWith('/') && !path.startsWith('-') && !path.split('/').includes('..')
+}
+
+export function isValidDeployRepo(repo) {
+  return REPO_RE.test(repo) && !/\/\.\.?$/.test(repo)
+}
+
+export function isValidBuildCommand(command) {
+  return command.length <= 500 && PRINTABLE.test(command)
+}
 
 // Tiny JSON highlighter for the preview pane.
 export function highlight(json) {
@@ -56,9 +147,23 @@ export function initClaim(root, registry) {
   function targetValid() {
     const t = els.target.value.trim()
     const type = els.rtype.value
-    if (type === 'CNAME') return HOST.test(t) && !/(^|\.)is-my\.app\.?$/i.test(t)
-    if (type === 'A') return t.split(/[\s,]+/).filter(Boolean).every((ip) => IPV4.test(ip))
-    return t.split(/[\s,]+/).filter(Boolean).every((ip) => ip.includes(':') && /^[\da-f:]+$/i.test(ip))
+    if (!t) return false
+    const values = t.split(/[\s,]+/).filter(Boolean)
+    if (!values.length) return false
+    if (values.length > 10 || new Set(values).size !== values.length) return false
+    if (type === 'CNAME') return isHostname(t) && !/(^|\.)is-my\.app\.?$/i.test(t)
+    if (type === 'A') return values.every(isPublicIPv4)
+    return values.every(isPublicIPv6)
+  }
+
+  function deployValid() {
+    const repo = normalizeRepo(els.repo.value)
+    const build = els.build.value.trim()
+    const output = els.output.value.trim()
+    if (!isValidDeployRepo(repo)) return false
+    if (build && !isValidBuildCommand(build)) return false
+    if (output && output !== '.' && !isRelPath(output)) return false
+    return true
   }
 
   function build() {
@@ -87,16 +192,22 @@ export function initClaim(root, registry) {
     const n = els.name.value.trim().toLowerCase()
     if (n !== els.name.value) els.name.value = n
     const [state, msg] = nameState(n)
-    els.status.dataset.state = state
-    els.status.textContent = msg
+    const registryReady = !registry.error
+    if (!registryReady) {
+      els.status.dataset.state = 'idle'
+      els.status.textContent = 'Could not check availability. Please reload and try again.'
+    } else {
+      els.status.dataset.state = state
+      els.status.textContent = msg
+    }
     names.forEach((el) => (el.textContent = n || 'your-app-name'))
 
     const json = build()
     els.out.innerHTML = highlight(json)
 
     const ghOk = GH_USER.test(els.github.value.trim())
-    const modeOk = mode === 'records' ? targetValid() : REPO_RE.test(normalizeRepo(els.repo.value))
-    const ready = state === 'ok' && ghOk && modeOk
+    const modeOk = mode === 'records' ? targetValid() : deployValid()
+    const ready = registryReady && state === 'ok' && ghOk && modeOk
     els.pr.classList.toggle('is-disabled', !ready)
     els.pr.setAttribute('aria-disabled', String(!ready))
     els.pr.href = ready
@@ -108,6 +219,7 @@ export function initClaim(root, registry) {
     const ph = { CNAME: 'you.github.io', A: '203.0.113.10, 203.0.113.11', AAAA: '2001:db8::1' }
     els.target.placeholder = ph[els.rtype.value]
     els.targetLabel.textContent = els.rtype.value === 'CNAME' ? 'Points to' : 'IP addresses'
+    trackEvent('Claim record type changed', { recordType: els.rtype.value })
     update()
   })
 
@@ -118,6 +230,7 @@ export function initClaim(root, registry) {
     els.seg.dataset.mode = mode
     els.seg.querySelectorAll('button').forEach((b) => b.setAttribute('aria-selected', String(b === btn)))
     root.querySelectorAll('[data-panel]').forEach((p) => (p.hidden = p.dataset.panel !== mode))
+    trackEvent('Claim mode changed', { mode })
     update()
   })
 
@@ -126,12 +239,28 @@ export function initClaim(root, registry) {
     try {
       await navigator.clipboard.writeText(build())
       label.textContent = 'Copied'
+      trackEvent('Claim JSON copied', { mode })
     } catch {
       label.textContent = 'Copy failed'
+      trackEvent('Claim JSON copy failed', { mode })
     }
     setTimeout(() => (label.textContent = 'Copy JSON'), 1600)
   })
 
+  els.pr.addEventListener('click', (event) => {
+    if (els.pr.classList.contains('is-disabled')) {
+      event.preventDefault()
+      return
+    }
+    trackEvent('Pull request opened', { mode, name: els.name.value.trim() || 'your-app-name' })
+  })
+
+  root.addEventListener('change', (event) => {
+    const target = event.target
+    if (!(target instanceof HTMLElement)) return
+    const id = target.id
+    if (id && id !== 'rtype') trackEvent('Claim form field updated', { field: id, mode })
+  })
   root.addEventListener('input', update)
   root.addEventListener('submit', (e) => e.preventDefault())
   update()

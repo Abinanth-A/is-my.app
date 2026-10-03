@@ -8,6 +8,7 @@ import { gsap } from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { SplitText } from 'gsap/SplitText'
 import Lenis from 'lenis'
+import { trackEvent } from './analytics.js'
 import { initClaim } from './claim.js'
 import { loadRegistry, renderRegistry, fillMarquees } from './registry.js'
 import { initRecipes } from './recipes.js'
@@ -46,8 +47,12 @@ function initScroll() {
   lenis.stop()
   document.querySelectorAll('a[href^="#"]').forEach((a) => {
     a.addEventListener('click', (e) => {
+      if (a.getAttribute('aria-disabled') === 'true') {
+        e.preventDefault()
+        return
+      }
       const id = a.getAttribute('href')
-      if (id.length < 2 && id !== '#') return
+      if (!id?.startsWith('#')) return
       const target = id === '#top' || id === '#' ? 0 : document.querySelector(id)
       if (target === null) return
       e.preventDefault()
@@ -381,10 +386,40 @@ function initCopy() {
       try {
         await navigator.clipboard.writeText(btn.dataset.copy)
         label.textContent = 'copied'
+        trackEvent('Fork command copied')
       } catch {
         label.textContent = 'failed'
+        trackEvent('Fork command copy failed')
       }
       setTimeout(() => (label.textContent = 'copy'), 1600)
+    })
+  })
+}
+
+function initActionTracking() {
+  document.addEventListener('click', (event) => {
+    const target = event.target
+    if (!(target instanceof Element)) return
+    const link = target.closest('a[href]')
+    if (!link || link.id === 'pr-link' || link.matches('.registry__grid a.entry')) return
+
+    const href = link.getAttribute('href')
+    const label = (link.getAttribute('aria-label') || link.textContent).trim().replace(/\s+/g, ' ').slice(0, 80)
+    if (href.startsWith('#')) {
+      trackEvent('Page section opened', { section: href.slice(1) || 'top', label })
+      return
+    }
+
+    const destination = new URL(href, window.location.href)
+    trackEvent(destination.origin === window.location.origin ? 'Site resource opened' : 'External link opened', { label })
+  })
+
+  document.querySelectorAll('details').forEach((details) => {
+    details.addEventListener('toggle', () => {
+      if (details.open) {
+        const question = details.querySelector('summary')?.textContent.trim()
+        trackEvent('FAQ answer opened', question ? { question } : {})
+      }
     })
   })
 }
@@ -396,6 +431,7 @@ function initKeys() {
     if (e.key !== '/' || e.metaKey || e.ctrlKey || e.altKey) return
     if (e.target.closest('input, textarea, select, [contenteditable]')) return
     e.preventDefault()
+    trackEvent('Registry keyboard shortcut used', { action: 'focus search' })
     if (lenis) lenis.scrollTo(document.querySelector('#registry'), { duration: 1.2, onComplete: () => search.focus({ preventScroll: true }) })
     else search.focus()
   })
@@ -411,6 +447,7 @@ async function boot() {
   initClaim(document.querySelector('.builder'), registry)
   initRecipes(document.querySelector('[data-recipes]'))
   initCopy()
+  initActionTracking()
   initKeys()
 
   initScroll()
