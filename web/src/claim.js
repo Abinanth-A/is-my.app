@@ -252,7 +252,7 @@ export function initClaim(root, registry) {
       event.preventDefault()
       return
     }
-    trackEvent('Pull request opened', { mode, name: els.name.value.trim() || 'your-app-name' })
+    trackEvent('Pull request form opened', { mode, name: els.name.value.trim() || 'your-app-name' })
   })
 
   root.addEventListener('change', (event) => {
