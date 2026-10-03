@@ -25,7 +25,16 @@ function normalizeRepo(v) {
 }
 
 export function initClaim(root, registry) {
-  const $ = (s) => root.querySelector(s) || document.querySelector(s)
+  const $ = (s) => {
+    if (typeof s !== 'string') return null
+    const selector = s.trim()
+    if (!selector) return null
+    try {
+      return root.querySelector(selector) ?? document.querySelector(selector)
+    } catch {
+      return null
+    }
+  }
   const els = {
     name: $('#name'), status: $('#name-status'), github: $('#github'), rtype: $('#rtype'), target: $('#target'),
     targetLabel: $('#target-label'), repo: $('#repo'), build: $('#build'), output: $('#output'), desc: $('#desc'),
